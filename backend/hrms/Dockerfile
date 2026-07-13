@@ -43,7 +43,7 @@ EXPOSE 8080
 # Build arguments for non-sensitive runtime defaults
 ARG PORT=8080
 ARG SPRING_PROFILES_ACTIVE=default
-ARG SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/hrms_db
+ARG SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/hrms_db
 ARG SPRING_DATASOURCE_USERNAME=root
 ARG JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
 
