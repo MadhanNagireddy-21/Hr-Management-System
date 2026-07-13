@@ -17,3 +17,10 @@ data/
 *.iml
 .vscode/
 *.DS_Store
+
+# Environment Variables & Secrets
+.env
+*.env
+!.env.sample
+!.env_sample
+!.env.example
