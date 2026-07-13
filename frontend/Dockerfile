@@ -20,8 +20,12 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Set environment variables for build time
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV NODE_ENV=production
+ARG NEXT_TELEMETRY_DISABLED=1
+ARG NODE_ENV=production
+ARG NEXT_PUBLIC_API_BASE_URL="http://localhost:8080"
+ENV NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED}
+ENV NODE_ENV=${NODE_ENV}
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
 
 # Build the Next.js standalone application
 RUN npm run build
@@ -32,10 +36,16 @@ RUN npm run build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
+ARG FRONTEND_PORT=3000
+ARG NEXT_PUBLIC_API_BASE_URL="http://localhost:8080"
+ARG NODE_ENV=production
+ARG NEXT_TELEMETRY_DISABLED=1
+
+ENV NODE_ENV=${NODE_ENV} \
+    NEXT_TELEMETRY_DISABLED=${NEXT_TELEMETRY_DISABLED} \
+    PORT=${FRONTEND_PORT} \
+    NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL} \
+    HOSTNAME="0.0.0.0"
 
 # Create non-root user for security best practices
 RUN addgroup --system --gid 1001 nodejs && \

@@ -5,6 +5,7 @@ import com.hrms.enums.Role;
 import com.hrms.repository.EmployeeRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
@@ -19,17 +20,35 @@ public class DataSeeder implements CommandLineRunner {
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Value("${seed.admin.email:admin@hrms.com}")
+    private String adminEmail;
+
+    @Value("${seed.admin.password:Admin@123}")
+    private String adminPassword;
+
+    @Value("${seed.hr.email:hr@hrms.com}")
+    private String hrEmail;
+
+    @Value("${seed.hr.password:Hr@12345}")
+    private String hrPassword;
+
+    @Value("${seed.employee.email:emp@hrms.com}")
+    private String empEmail;
+
+    @Value("${seed.employee.password:Emp@12345}")
+    private String empPassword;
+
     @Override
     public void run(String... args) {
 
         // Seed default Admin
-        if (!employeeRepository.existsByEmail("admin@hrms.com")) {
+        if (!employeeRepository.existsByEmail(adminEmail)) {
             Employee admin = Employee.builder()
                     .employeeId("EMP0001")
                     .firstName("System")
                     .lastName("Admin")
-                    .email("admin@hrms.com")
-                    .password(passwordEncoder.encode("Admin@123"))
+                    .email(adminEmail)
+                    .password(passwordEncoder.encode(adminPassword))
                     .department("Administration")
                     .designation("System Administrator")
                     .role(Role.ADMIN)
@@ -37,17 +56,17 @@ public class DataSeeder implements CommandLineRunner {
                     .active(true)
                     .build();
             employeeRepository.save(admin);
-            log.info("✅ ADMIN seeded: admin@hrms.com / Admin@123  →  loginType: ADMIN");
+            log.info("✅ ADMIN account seeded for email: {}  →  loginType: ADMIN", adminEmail);
         }
 
         // Seed default HR
-        if (!employeeRepository.existsByEmail("hr@hrms.com")) {
+        if (!employeeRepository.existsByEmail(hrEmail)) {
             Employee hr = Employee.builder()
                     .employeeId("EMP0002")
                     .firstName("HR")
                     .lastName("Manager")
-                    .email("hr@hrms.com")
-                    .password(passwordEncoder.encode("Hr@12345"))
+                    .email(hrEmail)
+                    .password(passwordEncoder.encode(hrPassword))
                     .department("Human Resources")
                     .designation("HR Manager")
                     .role(Role.HR)
@@ -55,17 +74,17 @@ public class DataSeeder implements CommandLineRunner {
                     .active(true)
                     .build();
             employeeRepository.save(hr);
-            log.info("✅ HR seeded: hr@hrms.com / Hr@12345  →  loginType: ADMIN");
+            log.info("✅ HR account seeded for email: {}  →  loginType: HR", hrEmail);
         }
 
         // Seed default Employee
-        if (!employeeRepository.existsByEmail("emp@hrms.com")) {
+        if (!employeeRepository.existsByEmail(empEmail)) {
             Employee emp = Employee.builder()
                     .employeeId("EMP0003")
                     .firstName("Test")
                     .lastName("Employee")
-                    .email("emp@hrms.com")
-                    .password(passwordEncoder.encode("Emp@12345"))
+                    .email(empEmail)
+                    .password(passwordEncoder.encode(empPassword))
                     .department("Engineering")
                     .designation("Software Developer")
                     .role(Role.EMPLOYEE)
@@ -73,7 +92,7 @@ public class DataSeeder implements CommandLineRunner {
                     .active(true)
                     .build();
             employeeRepository.save(emp);
-            log.info("✅ EMPLOYEE seeded: emp@hrms.com / Emp@12345  →  loginType: EMPLOYEE");
+            log.info("✅ EMPLOYEE account seeded for email: {}  →  loginType: EMPLOYEE", empEmail);
         }
     }
 }

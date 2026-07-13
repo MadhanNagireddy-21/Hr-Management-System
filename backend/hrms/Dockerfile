@@ -40,12 +40,19 @@ USER hrmsuser
 # Expose the port configured in application.properties (default: 8080)
 EXPOSE 8080
 
-# Environment variables with default fallbacks
-ENV PORT=8080 \
-    SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/hrms_db \
-    SPRING_DATASOURCE_USERNAME=root \
-    SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-change_me_in_env} \
-    JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+# Build arguments for non-sensitive runtime defaults
+ARG PORT=8080
+ARG SPRING_PROFILES_ACTIVE=default
+ARG SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/hrms_db
+ARG SPRING_DATASOURCE_USERNAME=root
+ARG JAVA_OPTS="-XX:+UseContainerSupport -XX:MaxRAMPercentage=75.0"
+
+# Environment variables bound to ARGs (sensitive variables like SPRING_DATASOURCE_PASSWORD and JWT_SECRET are injected securely at runtime via --env-file or -e)
+ENV PORT=${PORT} \
+    SPRING_PROFILES_ACTIVE=${SPRING_PROFILES_ACTIVE} \
+    SPRING_DATASOURCE_URL=${SPRING_DATASOURCE_URL} \
+    SPRING_DATASOURCE_USERNAME=${SPRING_DATASOURCE_USERNAME} \
+    JAVA_OPTS=${JAVA_OPTS}
 
 # Run the Spring Boot application
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]
