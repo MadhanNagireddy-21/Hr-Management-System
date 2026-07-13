@@ -1,0 +1,12 @@
+target
+!.mvn/wrapper/maven-wrapper.jar
+!target/*.jar
+*.class
+*.log
+.git
+.gitignore
+.idea
+*.iml
+.vscode
+HRMS_Postman_Collection.json
+README.md
