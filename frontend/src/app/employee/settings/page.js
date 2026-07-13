@@ -4,16 +4,42 @@ import { useSelector } from 'react-redux';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 
+const EyeIcon = ({ show, toggle }) => (
+  <button type="button" onClick={toggle}
+    style={{
+      position: 'absolute', right: '12px',
+      top: '50%', transform: 'translateY(-50%)',
+      background: 'none', border: 'none',
+      cursor: 'pointer', padding: '0',
+      display: 'flex', alignItems: 'center',
+    }}>
+    {show ? (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
+        <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
+        <line x1="1" y1="1" x2="23" y2="23" />
+      </svg>
+    ) : (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    )}
+  </button>
+);
+
 export default function SettingsPage() {
   const { user } = useSelector((state) => state.auth);
 
   const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword]         = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrent, setShowCurrent]         = useState(false);
-  const [showNew, setShowNew]                 = useState(false);
-  const [showConfirm, setShowConfirm]         = useState(false);
-  const [changing, setChanging]               = useState(false);
+  const [showCurrent, setShowCurrent] = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [changing, setChanging] = useState(false);
 
   const handleChangePassword = async (e) => {
     e.preventDefault();
@@ -54,37 +80,10 @@ export default function SettingsPage() {
     background: 'white',
   };
 
-  const EyeIcon = ({ show, toggle }) => (
-    <button
-      type="button"
-      onClick={toggle}
-      style={{
-        position: 'absolute', right: '12px',
-        top: '50%', transform: 'translateY(-50%)',
-        background: 'none', border: 'none',
-        cursor: 'pointer', padding: '0',
-        display: 'flex', alignItems: 'center',
-      }}
-    >
-      {show ? (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-          stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
-          <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/>
-          <line x1="1" y1="1" x2="23" y2="23"/>
-        </svg>
-      ) : (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-          stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-      )}
-    </button>
-  );
 
-  const met6chars   = newPassword.length >= 6;
-  const metMatch    = newPassword === confirmPassword && confirmPassword !== '';
+
+  const met6chars = newPassword.length >= 6;
+  const metMatch = newPassword === confirmPassword && confirmPassword !== '';
 
   return (
     <div>
@@ -139,10 +138,10 @@ export default function SettingsPage() {
 
             {/* Details */}
             {[
-              { label: 'Full Name',      value: user?.name },
-              { label: 'Email Address',  value: user?.email },
-              { label: 'Employee Code',  value: user?.employeeCode },
-              { label: 'Role',           value: user?.role },
+              { label: 'Full Name', value: user?.name },
+              { label: 'Email Address', value: user?.email },
+              { label: 'Employee Code', value: user?.employeeCode },
+              { label: 'Role', value: user?.role },
             ].map((item, i) => (
               <div key={i} style={{
                 display: 'flex', justifyContent: 'space-between',
@@ -198,7 +197,7 @@ export default function SettingsPage() {
                     onFocus={e => e.target.style.borderColor = '#1e3a5f'}
                     onBlur={e => e.target.style.borderColor = '#e2e8f0'}
                   />
-                  <EyeIcon show={showCurrent} toggle={() => setShowCurrent(!showCurrent)}/>
+                  <EyeIcon show={showCurrent} toggle={() => setShowCurrent(!showCurrent)} />
                 </div>
               </div>
 
@@ -218,7 +217,7 @@ export default function SettingsPage() {
                     onFocus={e => e.target.style.borderColor = '#1e3a5f'}
                     onBlur={e => e.target.style.borderColor = '#e2e8f0'}
                   />
-                  <EyeIcon show={showNew} toggle={() => setShowNew(!showNew)}/>
+                  <EyeIcon show={showNew} toggle={() => setShowNew(!showNew)} />
                 </div>
               </div>
 
@@ -238,7 +237,7 @@ export default function SettingsPage() {
                     onFocus={e => e.target.style.borderColor = '#1e3a5f'}
                     onBlur={e => e.target.style.borderColor = '#e2e8f0'}
                   />
-                  <EyeIcon show={showConfirm} toggle={() => setShowConfirm(!showConfirm)}/>
+                  <EyeIcon show={showConfirm} toggle={() => setShowConfirm(!showConfirm)} />
                 </div>
               </div>
 
@@ -253,13 +252,13 @@ export default function SettingsPage() {
                 </div>
                 {[
                   { rule: 'At least 6 characters', met: met6chars },
-                  { rule: 'Passwords match',        met: metMatch },
+                  { rule: 'Passwords match', met: metMatch },
                 ].map((r, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                       stroke={r.met ? '#16a34a' : '#cbd5e1'} strokeWidth="3"
                       strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12"/>
+                      <polyline points="20 6 9 17 4 12" />
                     </svg>
                     <span style={{ fontSize: '12px', color: r.met ? '#16a34a' : '#94a3b8' }}>
                       {r.rule}
@@ -287,8 +286,8 @@ export default function SettingsPage() {
                   <>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                       stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                      <path d="M7 11V7a5 5 0 0110 0v4"/>
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0110 0v4" />
                     </svg>
                     Change Password
                   </>

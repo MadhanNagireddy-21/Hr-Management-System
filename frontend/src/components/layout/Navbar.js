@@ -293,17 +293,20 @@ export default function Navbar() {
   const isAdmin = user?.role === 'ADMIN' || user?.role === 'HR';
 
   useEffect(() => {
+    let active = true;
+    const fetchUnreadCount = async () => {
+      try {
+        const res = await getUnreadCount();
+        if (active) setUnreadCount(res.data?.data || 0);
+      } catch {}
+    };
     fetchUnreadCount();
     const interval = setInterval(fetchUnreadCount, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
   }, []);
-
-  const fetchUnreadCount = async () => {
-    try {
-      const res = await getUnreadCount();
-      setUnreadCount(res.data?.data || 0);
-    } catch {}
-  };
 
   const EMP_SEARCH_ITEMS = [
     { label: 'Dashboard',       path: '/employee/dashboard',      icon: Home },
@@ -401,7 +404,7 @@ export default function Navbar() {
           }}>
             {filtered.length === 0 ? (
               <div style={{ padding: '14px 16px', fontSize: '13px', color: '#94a3b8', textAlign: 'center' }}>
-                No results for "{search}"
+                No results for &quot;{search}&quot;
               </div>
             ) : (
               filtered.map((item, i) => {

@@ -1,12 +1,12 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getMyPayslips } from '@/lib/employeeApi';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 
 const MONTHS = [
-  'January','February','March','April','May','June',
-  'July','August','September','October','November','December'
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
 export default function PayslipsPage() {
@@ -18,22 +18,26 @@ export default function PayslipsPage() {
   const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
+    let active = true;
+    const fetchPayslips = async () => {
+      try {
+        const res = await getMyPayslips(page, 10);
+        if (active) {
+          const data = res.data?.data;
+          setPayslips(data?.content || []);
+          setTotalPages(data?.totalPages || 0);
+          setLoading(false);
+        }
+      } catch (err) {
+        if (active) {
+          toast.error('Failed to load payslips');
+          setLoading(false);
+        }
+      }
+    };
     fetchPayslips();
+    return () => { active = false; };
   }, [page]);
-
-  const fetchPayslips = async () => {
-    setLoading(true);
-    try {
-      const res = await getMyPayslips(page, 10);
-      const data = res.data?.data;
-      setPayslips(data?.content || []);
-      setTotalPages(data?.totalPages || 0);
-    } catch (err) {
-      toast.error('Failed to load payslips');
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const fetchDetail = async (payslipNumber) => {
     setLoadingDetail(true);

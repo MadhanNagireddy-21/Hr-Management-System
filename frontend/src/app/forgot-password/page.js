@@ -4,17 +4,43 @@ import { useRouter } from 'next/navigation';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 
+const EyeIcon = ({ show, toggle }) => (
+  <button type="button" onClick={toggle}
+    style={{
+      position: 'absolute', right: '12px',
+      top: '50%', transform: 'translateY(-50%)',
+      background: 'none', border: 'none',
+      cursor: 'pointer', padding: '0',
+      display: 'flex', alignItems: 'center',
+    }}>
+    {show ? (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
+        <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
+        <line x1="1" y1="1" x2="23" y2="23" />
+      </svg>
+    ) : (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    )}
+  </button>
+);
+
 export default function ForgotPasswordPage() {
   const router = useRouter();
 
-  const [step, setStep]                       = useState(1);
-  const [email, setEmail]                     = useState('');
-  const [otp, setOtp]                         = useState('');
-  const [newPassword, setNewPassword]         = useState('');
+  const [step, setStep] = useState(1);
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showNew, setShowNew]                 = useState(false);
-  const [showConfirm, setShowConfirm]         = useState(false);
-  const [loading, setLoading]                 = useState(false);
+  const [showNew, setShowNew] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const inputStyle = {
     width: '100%',
@@ -30,31 +56,7 @@ export default function ForgotPasswordPage() {
     transition: 'border 0.2s',
   };
 
-  const EyeIcon = ({ show, toggle }) => (
-    <button type="button" onClick={toggle}
-      style={{
-        position: 'absolute', right: '12px',
-        top: '50%', transform: 'translateY(-50%)',
-        background: 'none', border: 'none',
-        cursor: 'pointer', padding: '0',
-        display: 'flex', alignItems: 'center',
-      }}>
-      {show ? (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-          stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
-          <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/>
-          <line x1="1" y1="1" x2="23" y2="23"/>
-        </svg>
-      ) : (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-          stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-      )}
-    </button>
-  );
+
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
@@ -109,7 +111,7 @@ export default function ForgotPasswordPage() {
   };
 
   const met6chars = newPassword.length >= 6;
-  const metMatch  = newPassword === confirmPassword && confirmPassword !== '';
+  const metMatch = newPassword === confirmPassword && confirmPassword !== '';
 
   return (
     <div style={{
@@ -135,8 +137,8 @@ export default function ForgotPasswordPage() {
         }}>
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
             stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-            <path d="M7 11V7a5 5 0 0110 0v4"/>
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+            <path d="M7 11V7a5 5 0 0110 0v4" />
           </svg>
         </div>
 
@@ -154,7 +156,7 @@ export default function ForgotPasswordPage() {
                 {step > s ? (
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
                     stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="20 6 9 17 4 12"/>
+                    <polyline points="20 6 9 17 4 12" />
                   </svg>
                 ) : s}
               </div>
@@ -163,7 +165,7 @@ export default function ForgotPasswordPage() {
                   width: '40px', height: '2px',
                   background: step > s ? '#1e3a5f' : '#e2e8f0',
                   transition: 'all 0.3s',
-                }}/>
+                }} />
               )}
             </div>
           ))}
@@ -190,7 +192,7 @@ export default function ForgotPasswordPage() {
               Forgot Password?
             </h1>
             <p style={{ fontSize: '13px', color: '#94a3b8', marginBottom: '28px', textAlign: 'center', lineHeight: 1.6 }}>
-              Enter your registered email and we'll send you an OTP to reset your password
+              Enter your registered email and we&apos;ll send you an OTP to reset your password
             </p>
 
             <form onSubmit={handleSendOtp} style={{ width: '100%' }}>
@@ -202,8 +204,8 @@ export default function ForgotPasswordPage() {
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none"
                     stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
                     style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}>
-                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                    <polyline points="22,6 12,13 2,6"/>
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
                   </svg>
                   <input
                     type="email"
@@ -304,7 +306,7 @@ export default function ForgotPasswordPage() {
                     onFocus={e => e.target.style.borderColor = '#1e3a5f'}
                     onBlur={e => e.target.style.borderColor = '#e2e8f0'}
                   />
-                  <EyeIcon show={showNew} toggle={() => setShowNew(!showNew)}/>
+                  <EyeIcon show={showNew} toggle={() => setShowNew(!showNew)} />
                 </div>
               </div>
 
@@ -324,7 +326,7 @@ export default function ForgotPasswordPage() {
                     onFocus={e => e.target.style.borderColor = '#1e3a5f'}
                     onBlur={e => e.target.style.borderColor = '#e2e8f0'}
                   />
-                  <EyeIcon show={showConfirm} toggle={() => setShowConfirm(!showConfirm)}/>
+                  <EyeIcon show={showConfirm} toggle={() => setShowConfirm(!showConfirm)} />
                 </div>
               </div>
 
@@ -336,13 +338,13 @@ export default function ForgotPasswordPage() {
               }}>
                 {[
                   { rule: 'At least 6 characters', met: met6chars },
-                  { rule: 'Passwords match',        met: metMatch },
+                  { rule: 'Passwords match', met: metMatch },
                 ].map((r, i) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: i === 0 ? '4px' : 0 }}>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
                       stroke={r.met ? '#16a34a' : '#cbd5e1'} strokeWidth="3"
                       strokeLinecap="round" strokeLinejoin="round">
-                      <polyline points="20 6 9 17 4 12"/>
+                      <polyline points="20 6 9 17 4 12" />
                     </svg>
                     <span style={{ fontSize: '12px', color: r.met ? '#16a34a' : '#94a3b8' }}>
                       {r.rule}
@@ -379,13 +381,14 @@ export default function ForgotPasswordPage() {
             {/* Resend OTP */}
             <div style={{ textAlign: 'center' }}>
               <span style={{ fontSize: '12px', color: '#94a3b8' }}>
-                Didn't receive OTP?{' '}
+                Didn&apos;t receive OTP?{' '}
               </span>
-              <span
+              <button
+                type="button"
                 onClick={handleResendOtp}
-                style={{ fontSize: '12px', color: '#3b82f6', fontWeight: '700', cursor: 'pointer' }}>
+                style={{ background: 'none', border: 'none', padding: 0, fontSize: '12px', color: '#3b82f6', fontWeight: '700', cursor: 'pointer' }}>
                 Resend OTP
-              </span>
+              </button>
             </div>
           </>
         )}
@@ -401,7 +404,7 @@ export default function ForgotPasswordPage() {
             }}>
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
                 stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="20 6 9 17 4 12"/>
+                <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
 

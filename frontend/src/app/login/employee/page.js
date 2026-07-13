@@ -6,6 +6,32 @@ import { loginSuccess } from '@/store/authSlice';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 
+const EyeIcon = ({ show, toggle }) => (
+  <button type="button" onClick={toggle}
+    style={{
+      position: 'absolute', right: '12px',
+      top: '50%', transform: 'translateY(-50%)',
+      background: 'none', border: 'none',
+      cursor: 'pointer', padding: '0',
+      display: 'flex', alignItems: 'center',
+    }}>
+    {show ? (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
+        <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
+        <line x1="1" y1="1" x2="23" y2="23" />
+      </svg>
+    ) : (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+        stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+        <circle cx="12" cy="12" r="3" />
+      </svg>
+    )}
+  </button>
+);
+
 export default function EmployeeLogin() {
   const router = useRouter();
   const dispatch = useDispatch();
@@ -40,31 +66,7 @@ export default function EmployeeLogin() {
     }
   };
 
-  const EyeIcon = ({ show, toggle }) => (
-    <button type="button" onClick={toggle}
-      style={{
-        position: 'absolute', right: '12px',
-        top: '50%', transform: 'translateY(-50%)',
-        background: 'none', border: 'none',
-        cursor: 'pointer', padding: '0',
-        display: 'flex', alignItems: 'center',
-      }}>
-      {show ? (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-          stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/>
-          <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/>
-          <line x1="1" y1="1" x2="23" y2="23"/>
-        </svg>
-      ) : (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-          stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-          <circle cx="12" cy="12" r="3"/>
-        </svg>
-      )}
-    </button>
-  );
+
 
   return (
     <div style={{
@@ -91,12 +93,12 @@ export default function EmployeeLogin() {
             position: 'absolute', bottom: '-20px', left: '-20px',
             width: '120px', height: '120px',
             background: 'rgba(59,130,246,0.08)', borderRadius: '50%',
-          }}/>
+          }} />
           <div style={{
             position: 'absolute', top: '-30px', right: '-10px',
             width: '100px', height: '100px',
             background: 'rgba(59,130,246,0.06)', borderRadius: '50%',
-          }}/>
+          }} />
           <div style={{
             width: '72px', height: '72px', borderRadius: '50%',
             background: 'white',
@@ -105,7 +107,7 @@ export default function EmployeeLogin() {
             position: 'relative', zIndex: 1,
           }}>
             <svg width="34" height="34" viewBox="0 0 24 24" fill="#3b82f6">
-              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
             </svg>
           </div>
         </div>
@@ -126,7 +128,7 @@ export default function EmployeeLogin() {
             display: 'flex', alignItems: 'center', gap: '8px',
           }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="#ef4444">
-              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" />
             </svg>
             <span style={{ fontSize: '13px', color: '#dc2626', fontWeight: '500' }}>{error}</span>
           </div>
@@ -136,15 +138,16 @@ export default function EmployeeLogin() {
 
           {/* Email */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '6px' }}>
+            <label htmlFor="emp-email" style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '6px' }}>
               Employee ID / Email
             </label>
             <div style={{ position: 'relative' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="#94a3b8"
                 style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}>
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
               </svg>
               <input
+                id="emp-email"
                 name="email" type="email" value={form.email}
                 onChange={handleChange}
                 placeholder="Enter your employee ID or email"
@@ -164,15 +167,16 @@ export default function EmployeeLogin() {
 
           {/* Password */}
           <div style={{ marginBottom: '16px' }}>
-            <label style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '6px' }}>
+            <label htmlFor="emp-password" style={{ fontSize: '13px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '6px' }}>
               Password
             </label>
             <div style={{ position: 'relative' }}>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="#94a3b8"
                 style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}>
-                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
+                <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z" />
               </svg>
               <input
+                id="emp-password"
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 value={form.password}
@@ -189,20 +193,21 @@ export default function EmployeeLogin() {
                 onFocus={e => { e.target.style.border = '2.5px solid #3b82f6'; e.target.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.1)'; }}
                 onBlur={e => { if (!form.password) { e.target.style.border = '2px solid #e2e8f0'; e.target.style.boxShadow = 'none'; } }}
               />
-              <EyeIcon show={showPassword} toggle={() => setShowPassword(!showPassword)}/>
+              <EyeIcon show={showPassword} toggle={() => setShowPassword(!showPassword)} />
             </div>
           </div>
 
           {/* Remember + Forgot */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#64748b', cursor: 'pointer' }}>
-              <input type="checkbox" style={{ width: '14px', height: '14px', accentColor: '#3b82f6' }}/> Remember me
+              <input type="checkbox" style={{ width: '14px', height: '14px', accentColor: '#3b82f6' }} /> Remember me
             </label>
-            <span
+            <button
+              type="button"
               onClick={() => router.push('/forgot-password')}
-              style={{ fontSize: '13px', color: '#3b82f6', fontWeight: '600', cursor: 'pointer' }}>
+              style={{ background: 'none', border: 'none', padding: 0, fontSize: '13px', color: '#3b82f6', fontWeight: '600', cursor: 'pointer' }}>
               Forgot Password?
-            </span>
+            </button>
           </div>
 
           {/* Sign In */}
@@ -218,14 +223,14 @@ export default function EmployeeLogin() {
             transition: 'all 0.2s',
           }}>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="white">
-              <path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z"/>
+              <path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5zm9 12h-8v2h8c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2h-8v2h8v14z" />
             </svg>
             {loading ? 'Signing in...' : 'Sign In'}
           </button>
 
           {/* Divider */}
           <div style={{ textAlign: 'center', position: 'relative', marginBottom: '14px' }}>
-            <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '1px', background: '#e2e8f0' }}/>
+            <div style={{ position: 'absolute', top: '50%', left: 0, right: 0, height: '1px', background: '#e2e8f0' }} />
             <span style={{ background: 'white', padding: '0 12px', fontSize: '12px', color: '#94a3b8', position: 'relative' }}>or</span>
           </div>
 
@@ -237,7 +242,7 @@ export default function EmployeeLogin() {
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
           }}>
             <svg width="16" height="16" viewBox="0 0 24 24" fill="#374151">
-              <path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5z" transform="rotate(180 12 12)"/>
+              <path d="M11 7L9.6 8.4l2.6 2.6H2v2h10.2l-2.6 2.6L11 17l5-5-5-5z" transform="rotate(180 12 12)" />
             </svg>
             Back to Login Type Selection
           </button>
@@ -246,19 +251,19 @@ export default function EmployeeLogin() {
         {/* Illustration */}
         <div style={{ marginTop: '24px', width: '100%', display: 'flex', justifyContent: 'center' }}>
           <svg viewBox="0 0 200 80" width="200" height="80">
-            <rect x="20" y="50" width="160" height="4" rx="2" fill="#e2e8f0"/>
-            <rect x="60" y="20" width="80" height="34" rx="4" fill="#dbeafe"/>
-            <rect x="65" y="25" width="70" height="6" rx="2" fill="#93c5fd"/>
-            <rect x="65" y="35" width="50" height="4" rx="2" fill="#bfdbfe"/>
-            <rect x="65" y="43" width="60" height="4" rx="2" fill="#bfdbfe"/>
-            <circle cx="100" cy="14" r="8" fill="#3b82f6"/>
-            <path d="M96 14 L100 18 L104 14" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-            <circle cx="40" cy="48" r="3" fill="#93c5fd"/>
-            <line x1="28" y1="30" x2="38" y2="40" stroke="#bfdbfe" strokeWidth="2"/>
-            <circle cx="28" cy="28" r="4" fill="#dbeafe" stroke="#93c5fd" strokeWidth="1"/>
-            <circle cx="160" cy="48" r="3" fill="#93c5fd"/>
-            <line x1="165" y1="35" x2="162" y2="45" stroke="#bfdbfe" strokeWidth="2"/>
-            <rect x="162" y="25" width="16" height="12" rx="2" fill="#dbeafe" stroke="#93c5fd" strokeWidth="1"/>
+            <rect x="20" y="50" width="160" height="4" rx="2" fill="#e2e8f0" />
+            <rect x="60" y="20" width="80" height="34" rx="4" fill="#dbeafe" />
+            <rect x="65" y="25" width="70" height="6" rx="2" fill="#93c5fd" />
+            <rect x="65" y="35" width="50" height="4" rx="2" fill="#bfdbfe" />
+            <rect x="65" y="43" width="60" height="4" rx="2" fill="#bfdbfe" />
+            <circle cx="100" cy="14" r="8" fill="#3b82f6" />
+            <path d="M96 14 L100 18 L104 14" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" />
+            <circle cx="40" cy="48" r="3" fill="#93c5fd" />
+            <line x1="28" y1="30" x2="38" y2="40" stroke="#bfdbfe" strokeWidth="2" />
+            <circle cx="28" cy="28" r="4" fill="#dbeafe" stroke="#93c5fd" strokeWidth="1" />
+            <circle cx="160" cy="48" r="3" fill="#93c5fd" />
+            <line x1="165" y1="35" x2="162" y2="45" stroke="#bfdbfe" strokeWidth="2" />
+            <rect x="162" y="25" width="16" height="12" rx="2" fill="#dbeafe" stroke="#93c5fd" strokeWidth="1" />
           </svg>
         </div>
       </div>
