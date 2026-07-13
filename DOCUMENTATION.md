@@ -1,5 +1,15 @@
 # HR Management System (HRMS) — End-to-End Architecture & Workflow Documentation
 
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot_3-%236DB33F.svg?style=for-the-badge&logo=spring-boot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Java 17](https://img.shields.io/badge/Java_17-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white)](https://adoptium.net/)
+[![Next.js 14](https://img.shields.io/badge/Next.js_14-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)](https://react.dev/)
+[![MySQL 8.0](https://img.shields.io/badge/MySQL_8.0-%2300f.svg?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Docker CE](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Spring Security](https://img.shields.io/badge/Spring_Security_JWT-%236DB33F.svg?style=for-the-badge&logo=spring-security&logoColor=white)](https://spring.io/projects/spring-security)
+[![AWS Cloud](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white)](https://aws.amazon.com/)
+
 Welcome to the comprehensive technical documentation for the **HR Management System (HRMS)**. This document details the system architecture, internal directory structure, containerized network communications, authentication lifecycles, and configuration management from end to end.
 
 ---
@@ -51,9 +61,9 @@ graph TD
 
 ---
 
-## 2. Component breakdown & Directory Structure
+## 2. Component Breakdown & Directory Structure
 
-### 🏗️ A. Root & Infrastructure (`d:\Hr-Management-System`)
+### A. Root & Infrastructure (`d:\Hr-Management-System`)
 The root directory orchestrates the environment variables and container deployment:
 ```
 d:\Hr-Management-System\
@@ -64,7 +74,7 @@ d:\Hr-Management-System\
 └── DOCUMENTATION.md         # Full project technical documentation
 ```
 
-### 🎨 B. Presentation Layer (`frontend/`)
+### B. Presentation Layer (`frontend/`)
 Built on **Next.js 14**, providing a responsive UI for Administrators, HRs, and Employees:
 ```
 frontend/
@@ -77,7 +87,7 @@ frontend/
         └── axios.js         # Configured HTTP client targeting NEXT_PUBLIC_API_BASE_URL
 ```
 
-### ⚙️ C. Application Layer (`backend/hrms/`)
+### C. Application Layer (`backend/hrms/`)
 Built with **Spring Boot 3.2.5**, managing enterprise logic, RBAC (Role-Based Access Control), and data persistence:
 ```
 backend/hrms/
@@ -104,7 +114,7 @@ backend/hrms/
 
 ## 3. End-to-End Request & Lifecycle Workflows
 
-### 🔐 A. Authentication & JWT Authorization Flow
+### A. Authentication & JWT Authorization Flow
 1. **Login Submission:** The client enters credentials (`admin@hrms.com / Admin@123`) on the React login page.
 2. **Axios Request:** `axios.post('/api/v1/auth/login')` sends the JSON payload to `http://localhost:8080/api/v1/auth/login`.
 3. **Controller Validation:** `AuthController` invokes `AuthService` to verify the email and password hash (`BCrypt`).
@@ -142,7 +152,7 @@ sequenceDiagram
 
 ---
 
-### 🌱 B. Automatic Idempotent Data Seeding (`DataSeeder.java`)
+### B. Automatic Idempotent Data Seeding (`DataSeeder.java`)
 When `hrms-backend` starts inside Docker, Spring Boot initializes the database connection (`HikariCP`). Before serving web requests, `CommandLineRunner` executes `DataSeeder.run()`:
 1. **Reads Environment Config:** Extracts `${seed.admin.email}`, `${seed.admin.password}`, etc. from `application.properties` / `.env`.
 2. **Checks Existence:** Queries `employeeRepository.existsByEmail(adminEmail)`.
@@ -156,7 +166,7 @@ When `hrms-backend` starts inside Docker, Spring Boot initializes the database c
 
 Understanding how containers communicate across `hrms-network` is vital for maintaining and debugging containerized environments:
 
-### 🌐 A. Why Service Hostnames (`db`, `backend`) Are Used
+### A. Why Service Hostnames (`db`, `backend`) Are Used
 Inside Docker Compose, each container receives its own internal IP address on the virtual bridge network (`172.18.0.X`). Because IPs can change on container recreation, Docker runs a **built-in DNS Server (`127.0.0.11`)** that maps `docker-compose.yml` service names (`db`, `backend`, `frontend`) to their current internal IPs.
 
 * **Database Connection URL (`jdbc:mysql://db:3306/hrms_db`):**
@@ -164,7 +174,7 @@ Inside Docker Compose, each container receives its own internal IP address on th
 * **Why `localhost:3306` inside Docker Fails:**
   Inside the `hrms-backend` container, `localhost` refers exclusively to the container's own internal loopback interface (where only Java/Tomcat runs). Connecting to `localhost:3306` from inside the backend container results in `java.net.ConnectException: Connection refused`.
 
-### 🩺 B. Orchestrated Startup & Healthchecks
+### B. Orchestrated Startup & Healthchecks
 To prevent Spring Boot from crashing (`Unable to open JDBC Connection for DDL execution`) when MySQL takes 15–20 seconds to boot:
 1. `hrms-db` defines an active healthcheck using `CMD-SHELL`:
    ```yaml
@@ -195,7 +205,7 @@ The system enforces a strict separation between code and credentials using envir
 
 ## 6. Quick Start & Operation Guide
 
-### 🚀 Option A: Run Entire Stack with Docker Compose (Recommended)
+### Option A: Run Entire Stack with Docker Compose (Recommended)
 From the project root (`d:\Hr-Management-System`), launch the complete three-tier application:
 ```powershell
 # Build and start all services in detached mode
@@ -211,7 +221,7 @@ docker compose logs -f backend
 * **Backend API Base:** `http://localhost:8080`
 * **Database Host (from external tool like DBeaver/Workbench):** `localhost:3306`
 
-### 💻 Option B: Local Host Development (Without Docker for Backend)
+### Option B: Local Host Development (Without Docker for Backend)
 If developing Spring Boot code locally using IntelliJ/Eclipse while keeping MySQL in Docker:
 1. Start only the database container:
    ```powershell
@@ -225,12 +235,12 @@ If developing Spring Boot code locally using IntelliJ/Eclipse while keeping MySQ
 
 ---
 
-### 📚 Maintenance Commands
+### Maintenance Commands
 ```powershell
 # Gracefully stop all containers
 docker compose stop
 
-# Stop and remove containers, networks, and volumes (⚠️ resets database data)
+# Stop and remove containers, networks, and volumes (resets database data)
 docker compose down -v
 
 # Rebuild only the backend after code modifications
