@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
+import jakarta.annotation.PostConstruct;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -14,6 +15,21 @@ import java.util.concurrent.ConcurrentHashMap;
 public class UserCacheService {
 
     private final EmployeeRepository employeeRepository;
+
+    @PostConstruct
+    public void initCache() {
+        try {
+            long now = System.currentTimeMillis();
+            employeeRepository.findAll().forEach(emp -> {
+                if (emp.getEmail() != null) {
+                    cache.put(emp.getEmail().toLowerCase().trim(), new CacheEntry(emp, now));
+                }
+            });
+            System.out.println("⚡ [UserCacheService] Successfully pre-warmed user cache with " + cache.size() + " employees!");
+        } catch (Exception e) {
+            System.err.println("⚠️ [UserCacheService] Could not pre-warm cache: " + e.getMessage());
+        }
+    }
 
     private static class CacheEntry {
         final Employee employee;

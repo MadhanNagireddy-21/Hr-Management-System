@@ -14,16 +14,20 @@ import java.util.List;
 public interface LeaveRequestRepository
         extends JpaRepository<LeaveRequest, Long> {
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"employee", "manager", "approvedBy"})
     Page<LeaveRequest> findByEmployee(
             Employee emp, Pageable pageable);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"employee", "manager", "approvedBy"})
     Page<LeaveRequest> findByStatus(
             LeaveStatus status, Pageable pageable);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"employee", "manager", "approvedBy"})
     Page<LeaveRequest> findByStatusIn(
             List<LeaveStatus> statuses, Pageable pageable);
 
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"employee", "manager", "approvedBy"})
     Page<LeaveRequest> findByApprovalStageIn(
             List<ApprovalStage> stages, Pageable pageable);
 

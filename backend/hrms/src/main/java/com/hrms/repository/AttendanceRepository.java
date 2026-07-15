@@ -17,7 +17,10 @@ import java.util.Optional;
 public interface AttendanceRepository extends JpaRepository<Attendance, Long> {
     Optional<Attendance> findByEmployeeAndDate(Employee employee, LocalDate date);
     List<Attendance> findByEmployeeAndDateBetween(Employee employee, LocalDate from, LocalDate to);
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"employee"})
     Page<Attendance> findByEmployee(Employee employee, Pageable pageable);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"employee"})
     Page<Attendance> findByDate(LocalDate date, Pageable pageable);
 
     long countByEmployeeAndDateBetweenAndStatus(Employee employee, LocalDate from, LocalDate to, AttendanceStatus status);
