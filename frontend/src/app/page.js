@@ -1,5 +1,6 @@
 'use client';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 export default function Home() {
   const router = useRouter();
@@ -33,17 +34,18 @@ export default function Home() {
         <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '32px' }}>Choose how you want to sign in</p>
 
         {/* Employee Card */}
-        <div
-          onClick={() => router.push('/login/employee')}
+        <Link
+          href="/login/employee"
           style={{
             width: '100%', border: '2px solid #3b82f6',
             borderRadius: '14px', padding: '16px 20px',
             display: 'flex', alignItems: 'center', gap: '14px',
             marginBottom: '14px', cursor: 'pointer',
             background: '#eff6ff', transition: 'all 0.2s',
+            textDecoration: 'none',
           }}
-          onMouseEnter={e => e.currentTarget.style.background = '#dbeafe'}
-          onMouseLeave={e => e.currentTarget.style.background = '#eff6ff'}
+          onMouseOver={e => e.currentTarget.style.background = '#dbeafe'}
+          onMouseOut={e => e.currentTarget.style.background = '#eff6ff'}
         >
           <div style={{
             width: '48px', height: '48px', background: '#dbeafe',
@@ -58,20 +60,21 @@ export default function Home() {
             <div style={{ fontSize: '12px', color: '#64748b' }}>Access your personal dashboard and services</div>
           </div>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="#3b82f6"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
-        </div>
+        </Link>
 
         {/* Admin Card */}
-        <div
-          onClick={() => router.push('/login/admin')}
+        <Link
+          href="/login/admin"
           style={{
             width: '100%', border: '2px solid #16a34a',
             borderRadius: '14px', padding: '16px 20px',
             display: 'flex', alignItems: 'center', gap: '14px',
             marginBottom: '32px', cursor: 'pointer',
             background: '#f0fdf4', transition: 'all 0.2s',
+            textDecoration: 'none',
           }}
-          onMouseEnter={e => e.currentTarget.style.background = '#dcfce7'}
-          onMouseLeave={e => e.currentTarget.style.background = '#f0fdf4'}
+          onMouseOver={e => e.currentTarget.style.background = '#dcfce7'}
+          onMouseOut={e => e.currentTarget.style.background = '#f0fdf4'}
         >
           <div style={{
             width: '48px', height: '48px', background: '#dcfce7',
@@ -86,7 +89,7 @@ export default function Home() {
             <div style={{ fontSize: '12px', color: '#64748b' }}>Access admin panel and manage the system</div>
           </div>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="#16a34a"><path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6z"/></svg>
-        </div>
+        </Link>
 
         {/* Illustration */}
         <div style={{ display: 'flex', gap: '20px', marginBottom: '24px', alignItems: 'flex-end' }}>

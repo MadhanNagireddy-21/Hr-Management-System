@@ -113,7 +113,7 @@ resource "aws_cloudfront_distribution" "frontend" {
     max_ttl                = 86400
   }
 
-  price_class = "PriceClass_100" # Cost-effective edge locations
+  price_class = "PriceClass_200" # Enables Edge locations in India, Singapore, and Asia
 
   restrictions {
     geo_restriction {
