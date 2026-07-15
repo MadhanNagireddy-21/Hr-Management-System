@@ -27,13 +27,14 @@ public class AttendanceService {
     @CacheEvict(value = "dashboardData", allEntries = true)
     public AttendanceDTOs.Response checkIn(Long employeeId, AttendanceDTOs.CheckInRequest req) {
         Employee emp = employeeService.findById(employeeId);
-        LocalDate date = req.getDate() != null ? req.getDate() : LocalDate.now();
+        java.time.ZoneId istZone = java.time.ZoneId.of("Asia/Kolkata");
+        LocalDate date = (req != null && req.getDate() != null) ? req.getDate() : LocalDate.now(istZone);
 
         if (attendanceRepo.findByEmployeeAndDate(emp, date).isPresent()) {
             throw new IllegalStateException("Already checked in for " + date);
         }
 
-        LocalTime checkIn = req.getCheckIn() != null ? req.getCheckIn() : LocalTime.now();
+        LocalTime checkIn = (req != null && req.getCheckIn() != null) ? req.getCheckIn() : LocalTime.now(istZone);
 
         Attendance att = Attendance.builder()
                 .employee(emp)
@@ -47,24 +48,29 @@ public class AttendanceService {
 
     @Transactional
     @CacheEvict(value = "dashboardData", allEntries = true)
-    public AttendanceDTOs.Response checkOut(Long employeeId, String remarks) {
+    public AttendanceDTOs.Response checkOut(Long employeeId, AttendanceDTOs.CheckOutRequest req) {
         Employee emp = employeeService.findById(employeeId);
-        LocalDate today = LocalDate.now();
+        java.time.ZoneId istZone = java.time.ZoneId.of("Asia/Kolkata");
+        LocalDate today = LocalDate.now(istZone);
 
         Attendance att = attendanceRepo.findByEmployeeAndDate(emp, today)
+                .or(() -> attendanceRepo.findFirstByEmployeeAndCheckOutIsNullOrderByDateDesc(emp))
                 .orElseThrow(() -> new com.hrms.exception.AttendanceRecordNotFound());
 
-        LocalTime checkOut = LocalTime.now();
+        LocalTime checkOut = (req != null && req.getCheckOut() != null) ? req.getCheckOut() : LocalTime.now(istZone);
         att.setCheckOut(checkOut);
 
         double hours = att.getCheckIn().until(checkOut, java.time.temporal.ChronoUnit.MINUTES) / 60.0;
+        if (hours < 0) {
+            hours += 24.0;
+        }
         att.setWorkHours(Math.round(hours * 100.0) / 100.0);
 
         if (hours < 4) att.setStatus(AttendanceStatus.HALF_DAY);
         else att.setStatus(AttendanceStatus.PRESENT);
 
-        if (remarks != null && !remarks.isBlank()) {
-            att.setRemarks(remarks);
+        if (req != null && req.getRemarks() != null && !req.getRemarks().isBlank()) {
+            att.setRemarks(req.getRemarks());
         }
 
         return toResponse(attendanceRepo.save(att));

@@ -63,11 +63,11 @@ public class EmployeeController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyRole('ADMIN')")
-    @Operation(summary = "Deactivate employee")
-    public ResponseEntity<ApiResponse<Void>> deactivate(@PathVariable Long id) {
-        employeeService.deactivateEmployee(id);
-        return ResponseEntity.ok(ApiResponse.success("Employee deactivated"));
+    @PreAuthorize("hasAnyRole('ADMIN','HR')")
+    @Operation(summary = "Delete employee")
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable Long id) {
+        employeeService.deleteEmployee(id);
+        return ResponseEntity.ok(ApiResponse.success("Employee deleted successfully"));
     }
 
     @GetMapping("/search")
