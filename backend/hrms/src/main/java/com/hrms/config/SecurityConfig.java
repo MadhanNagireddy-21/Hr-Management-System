@@ -44,6 +44,8 @@ public class SecurityConfig {
 
     // Admin/HR only endpoints
     private static final String[] ADMIN_HR_URLS = {
+            "/api/employees/**",
+            "/api/employees/*",
             "/api/employees/search",
             "/api/payroll/generate",
             "/api/payroll/month",

@@ -31,6 +31,13 @@ public class EmployeeService {
     private final EmployeeRepository employeeRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @jakarta.persistence.PersistenceContext
+    private jakarta.persistence.EntityManager entityManager;
+
+    @org.springframework.context.annotation.Lazy
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    private UserCacheService userCacheService;
+
     @Transactional
     @CacheEvict(value = "dashboardData", allEntries = true)
     public EmployeeDTOs.Response createEmployee(EmployeeDTOs.CreateRequest req) {
@@ -90,6 +97,39 @@ public class EmployeeService {
         Employee emp = findById(id);
         emp.setActive(false);
         employeeRepository.save(emp);
+        if (userCacheService != null && emp.getEmail() != null) {
+            userCacheService.evict(emp.getEmail());
+        }
+    }
+
+    @Transactional
+    @CacheEvict(value = "dashboardData", allEntries = true)
+    public void deleteEmployee(Long id) {
+        Employee emp = findById(id);
+        if (userCacheService != null && emp.getEmail() != null) {
+            userCacheService.evict(emp.getEmail());
+        }
+        String[] childQueries = {
+            "DELETE FROM Attendance a WHERE a.employee.id = :id",
+            "DELETE FROM LeaveRequest l WHERE l.employee.id = :id",
+            "DELETE FROM LeaveBalance l WHERE l.employee.id = :id",
+            "DELETE FROM Payroll p WHERE p.employee.id = :id",
+            "DELETE FROM Payslip p WHERE p.employee.id = :id",
+            "DELETE FROM PerformanceReview p WHERE p.employee.id = :id OR p.reviewer.id = :id",
+            "DELETE FROM Notification n WHERE n.recipient.id = :id",
+            "DELETE FROM Onboarding o WHERE o.employee.id = :id",
+            "DELETE FROM TrainingEnrollment t WHERE t.employee.id = :id"
+        };
+        for (String q : childQueries) {
+            try {
+                if (entityManager != null) {
+                    entityManager.createQuery(q).setParameter("id", id).executeUpdate();
+                }
+            } catch (Exception e) {
+                // Ignore if child entity is not found
+            }
+        }
+        employeeRepository.delete(emp);
     }
 
     @org.springframework.transaction.annotation.Transactional(readOnly = true)

@@ -40,8 +40,8 @@ public class AttendanceController {
     public ResponseEntity<ApiResponse<AttendanceDTOs.Response>> checkOut(
             @AuthenticationPrincipal Employee emp,
             @RequestBody(required = false) AttendanceDTOs.CheckOutRequest req) {
-        String remarks = (req != null) ? req.getRemarks() : null;
-        return ResponseEntity.ok(ApiResponse.success("Checked out", attendanceService.checkOut(emp.getId(), remarks)));
+        if (req == null) req = new AttendanceDTOs.CheckOutRequest();
+        return ResponseEntity.ok(ApiResponse.success("Checked out", attendanceService.checkOut(emp.getId(), req)));
     }
 
     @GetMapping("/my")
