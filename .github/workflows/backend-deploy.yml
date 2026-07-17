@@ -39,5 +39,6 @@ jobs:
             git pull origin $BRANCH
             sudo cp /opt/hrms/.env ./.env
             sudo sed -i 's/tlsVersions=TLSv1.2,TLSv1.3/tlsVersions=TLSv1.2,TLSv1.3\&useServerPrepStmts=false\&serverTimezone=UTC/g' ./.env
+            sudo docker rm -f hrms-backend hrms-nginx || true
             sudo docker compose -f docker-compose.prod.yml up -d --build
           "
