@@ -1,152 +1,111 @@
-# 🏢 HR Management System (HRMS) — Enterprise Production Deployment
+# HR Management System (HRMS)
 
-[![Spring Boot](https://img.shields.io/badge/Spring_Boot_3.2-%236DB33F.svg?style=for-the-badge&logo=spring-boot&logoColor=white)](https://spring.io/projects/spring-boot)
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot_3-%236DB33F.svg?style=for-the-badge&logo=spring-boot&logoColor=white)](https://spring.io/projects/spring-boot)
 [![Java 17](https://img.shields.io/badge/Java_17-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white)](https://adoptium.net/)
-[![Next.js 16](https://img.shields.io/badge/Next.js_16_(Turbopack)-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
-[![React 19](https://img.shields.io/badge/React_19-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)](https://react.dev/)
-[![TiDB Cloud Serverless MySQL](https://img.shields.io/badge/TiDB_Cloud_Serverless_MySQL-%234479A1.svg?style=for-the-badge&logo=mysql&logoColor=white)](https://tidbcloud.com/)
-[![Docker Compose v2](https://img.shields.io/badge/Docker_Compose_v2-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
-[![AWS CloudFront + S3 + EC2](https://img.shields.io/badge/AWS_CloudFront_|_S3_|_EC2-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white)](https://aws.amazon.com/)
+[![Next.js 14](https://img.shields.io/badge/Next.js_14-black?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-%2320232a.svg?style=for-the-badge&logo=react&logoColor=%2361DAFB)](https://react.dev/)
+[![MySQL 8.0](https://img.shields.io/badge/MySQL_8.0-%2300f.svg?style=for-the-badge&logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Docker CE](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Spring Security](https://img.shields.io/badge/Spring_Security_JWT-%236DB33F.svg?style=for-the-badge&logo=spring-security&logoColor=white)](https://spring.io/projects/spring-security)
+[![AWS Cloud](https://img.shields.io/badge/AWS-%23FF9900.svg?style=for-the-badge&logo=amazon-aws&logoColor=white)](https://aws.amazon.com/)
 
-A state-of-the-art, cloud-native **Enterprise Human Resource Management System (HRMS)** engineered for high performance, zero-trust security, and maximum cost efficiency (**~$19.67/mo AWS Target Architecture**).
+A modern, full-stack Human Resource Management System built with **Spring Boot 3 + MySQL 8.0** (Backend), **Next.js 14 + React + Tailwind CSS** (Frontend), and **Docker & Docker Compose** (Container Infrastructure).
 
-> **Full Documentation Suite:** For comprehensive details on sequence diagrams, networking protocols, state management, and Terraform automation, see **[DOCUMENTATION.md](DOCUMENTATION.md)**.
-
----
-
-## 🏛️ Live Production Architecture & Deployment
-
-The system is deployed using our **Option 2 Architecture Pattern (CloudFront CDN Edge with `/api/*` HTTPS Reverse Proxy to EC2 Nginx + Spring Boot + TiDB Cloud Serverless MySQL)**:
-
-```mermaid
-graph TD
-    subgraph Global Edge / Clients
-        Client[Browser / User Device]
-    end
-
-    subgraph AWS CloudFront CDN Edge (E2QCPRK45LRQB2)
-        CDN["https://d2cloh163xljkh.cloudfront.net<br/>(HTTPS Edge SSL Certificate)"]
-    end
-
-    subgraph AWS S3 Static Storage
-        S3["s3://hr-management-system-frontend-64fqj6pp<br/>(Next.js 16 Static HTML / JS Export)"]
-    end
-
-    subgraph AWS EC2 t3.small Instance (32.193.50.120)
-        subgraph Docker Bridge Network: hrms_network
-            Nginx["hrms-nginx (Port 80)<br/>Reverse Proxy + CORS"]
-            SpringBoot["hrms-backend (Port 8080)<br/>Spring Boot 3.2.5 REST API"]
-        end
-    end
-
-    subgraph TiDB Cloud Serverless MySQL Cluster
-        TiDB[("gateway01.us-east-1.prod.aws.tidbcloud.com:4000<br/>MySQL 8.0 Database ($0/mo Free Tier)")]
-    end
-
-    Client -- "HTTPS Requests" --> CDN
-    CDN -- "Default Route (/)" --> S3
-    CDN -- "Ordered Behavior (/api/*)" --> Nginx
-    Nginx -- "proxy_pass http://backend:8080" --> SpringBoot
-    SpringBoot -- "Hibernate JPA Connection" --> TiDB
-```
-
-### ⚡ Live Production Endpoints
-* **Frontend Portal (HTTPS CDN):** 👉 **`https://d2cloh163xljkh.cloudfront.net`**
-* **Backend Reverse Proxy IP:** **`http://32.193.50.120`** *(Proxied automatically by CloudFront via `/api/*`)*
-* **Database Cluster:** **`gateway01.us-east-1.prod.aws.tidbcloud.com:4000`** *(TiDB Cloud Serverless MySQL)*
+> **Comprehensive End-to-End Documentation:** For a deep dive into system architecture, sequence diagrams, container networking (`hrms-network`), internal DNS (`db:3306`), authentication flows, and data seeding lifecycles, please see **[DOCUMENTATION.md](DOCUMENTATION.md)**.
 
 ---
 
-## 🔐 Default Pre-Seeded Accounts (`DataSeeder`)
-
-When `hrms-backend` initializes, `DataSeeder.java` connects to TiDB and auto-creates the schema (`14 tables`) along with three production-ready accounts:
-
-| Portal Area | Email | Password | Role | Access Capabilities |
-| :--- | :--- | :--- | :--- | :--- |
-| **Admin Login** | `admin@hrms.com` | `Admin@123` | `ADMIN` | Full administrative control, payroll generation, settings, user management |
-| **Admin Login** | `hr@hrms.com` | `Hr@12345` | `HR` | Recruitment pipelines, onboarding checklists, employee profiles, attendance logs |
-| **Employee Login** | `emp@hrms.com` | `Emp@12345` | `EMPLOYEE` | Self-service attendance clocking, leave requests, historical payslips |
-
----
-
-## 🗂️ Project Repository Structure
+## Project Structure & Key Files
 
 ```
 Hr-Management-System/
-├── .env                              # Root local development environment configuration
-├── .env.sample                       # Root template for local & cloud environment variables
-├── docker-compose-test.yml           # Local multi-container stack (Spring Boot + Local MySQL container)
-├── docker-compose.prod.yml           # Production AWS EC2 stack (Nginx Alpine + Spring Boot connected to TiDB)
-├── DOCUMENTATION.md                  # Detailed architectural & infrastructure reference
-├── backend/hrms/                     # Spring Boot 3.2.5 REST API Backend (Java 17, JWT, Hibernate JPA)
-│   ├── Dockerfile                    # Multi-stage Docker build (Maven compile -> Alpine JRE 17 runner)
-│   └── src/main/resources/           # Configuration & database migrations
-├── frontend/                         # Next.js 16 / React 19 Web Application (`output: export`)
-│   ├── .env.production               # Production configuration (`NEXT_PUBLIC_API_BASE_URL=https://...`)
-│   ├── .env.production.sample        # Sample production environment configuration
-│   └── Dockerfile                    # Multi-stage standalone build support
-├── infrastructure/terraform/         # Automated Infrastructure as Code (VPC, EC2, S3, CloudFront, EIP)
-│   ├── s3-cloudfront.tf              # CloudFront CDN edge distribution with `/api/*` reverse proxy
-│   └── Scripts/                      # Automated server bootstrap (`installDocker.sh`, `app-server-setup.sh`)
-└── nginx/                            # Nginx reverse proxy configurations
-    └── nginx.conf                    # Production CORS & upstream proxy configuration
+├── .env                     # Centralized environment configuration (Ports, DB credentials, JWT secrets)
+├── .env.sample              # Canonical environment template for local setup
+├── docker-compose.yml       # Multi-container orchestration & bridge networking
+├── DOCUMENTATION.md         # Full technical architecture & workflow documentation
+├── backend/hrms/            # Spring Boot 3.2.5 REST API Backend (Java 17, JWT, Hibernate JPA)
+│   └── Dockerfile           # Multi-stage build (Maven compiler -> Alpine JRE 17 runner)
+└── frontend/                # Next.js 14 / React Web Application (Tailwind CSS, Axios)
+    └── Dockerfile           # Multi-stage build (Deps -> Next.js standalone builder -> runner)
 ```
 
 ---
 
-## 🛠️ Local Development & Quick Start Guide
+## Quick Start Guide (One-Command Deployment)
 
-If you wish to run or modify the application locally on your PC (Windows / macOS / Linux):
+The entire three-tier application (Next.js Frontend, Spring Boot API, and MySQL Database) is containerized and pre-configured to run seamlessly across a shared Docker bridge network (`hrms-network`).
 
-### 1. Root `.env` Configuration
-Copy the sample environment template:
+### 1. Environment Setup
+Copy the sample environment file to create your local `.env` configuration:
 ```powershell
 Copy-Item .env.sample .env
 ```
+*(Optionally adjust `DB_PASSWORD` or `SEED_*_PASSWORD` inside `.env` if desired).*
 
-### 2. Run Local Stack (`Spring Boot + Local MySQL Container`)
-To boot up the backend using Docker:
+### 2. Launch All Containers
+Run Docker Compose in detached mode to build and start the entire stack:
 ```powershell
-docker compose -f docker-compose-test.yml up -d --build
+docker compose up -d --build
 ```
 
-### 3. Run Frontend Locally (`Next.js Turbopack`)
-Open a new terminal inside `frontend/` and launch the local development server:
-```powershell
-cd frontend
-npm install
-npm run dev
-```
+### 3. Access Your Application
+Once `docker compose ps` reports all containers as healthy and running:
 * **Frontend Web UI:** [http://localhost:3000](http://localhost:3000)
-* **Local Backend API:** [http://localhost:8080](http://localhost:8080)
+* **Backend API / Tomcat:** [http://localhost:8080](http://localhost:8080)
+* **MySQL Database Host:** `localhost:3306` (from external tools like DBeaver/Workbench) or `db:3306` (inside Docker)
 
 ---
 
-## ☁️ Production Deployment Workflow (`AWS EC2 + S3 + CloudFront`)
+## Pre-Seeded Default Accounts (`DataSeeder`)
 
-Whenever you make updates to the code and want to deploy to your live AWS cloud infrastructure:
+When the backend container boots up, `DataSeeder.java` securely checks the database (`existsByEmail`) and automatically seeds three initial test accounts if they do not already exist:
 
-### 1. Update Backend on AWS EC2 (`32.193.50.120`)
-SSH into your EC2 server (`ip-10-0-1-69`) and run:
-```bash
-git pull origin dev
-docker compose -f docker-compose.prod.yml up -d --build
-```
+| Role | Email | Password (Default / Overridable via `.env`) | Login Portal (`loginType`) |
+|------|-------|-------------------------------------------|---------------------------|
+| **ADMIN** | `admin@hrms.com` | `Admin@123` *(via `SEED_ADMIN_PASSWORD`)* | `ADMIN` |
+| **HR** | `hr@hrms.com` | `Hr@12345` *(via `SEED_HR_PASSWORD`)* | `HR` |
+| **EMPLOYEE** | `emp@hrms.com` | `Emp@12345` *(via `SEED_EMPLOYEE_PASSWORD`)* | `EMPLOYEE` |
 
-### 2. Update Frontend on AWS S3 + CloudFront CDN
-Open PowerShell inside `frontend/` on your development machine:
+> *Note: Plaintext passwords are never logged to console output during seeding for enterprise security.*
+
+---
+
+## Local Development (Without Docker for Backend)
+
+If you prefer developing and debugging Spring Boot code locally inside your IDE (IntelliJ / Eclipse / VS Code):
+
+1. **Start only the database container:**
+   ```powershell
+   docker compose up -d db
+   ```
+2. **Run Spring Boot using the `local` profile:**
+   ```powershell
+   cd backend\hrms
+   mvn spring-boot:run -Dspring-boot.run.profiles=local
+   ```
+   *(This connects to either local H2 embedded DB or your `localhost:3306` instance as configured in `application-local.properties`).*
+
+---
+
+## Useful Maintenance Commands
+
 ```powershell
-cd d:\Hr-Management-System\frontend
-Remove-Item -Recurse -Force .next, out -ErrorAction SilentlyContinue
-npm run build
-aws s3 sync ./out s3://hr-management-system-frontend-64fqj6pp/ --delete
-aws cloudfront create-invalidation --distribution-id E2QCPRK45LRQB2 --paths "/*"
+# View real-time logs for the Spring Boot backend
+docker compose logs -f backend
+
+# View status and health checks of all running services
+docker compose ps
+
+# Gracefully stop all containers
+docker compose stop
+
+# Completely tear down containers, networks, and volumes (resets database data)
+docker compose down -v
 ```
-Once the invalidation completes (`~10 seconds`), your global CDN link **`https://d2cloh163xljkh.cloudfront.net`** will serve your latest updates instantly over HTTPS!
 
 ---
 
-## 📜 Further Reading & Module Documentation
-* **Architectural Deep Dive:** [DOCUMENTATION.md](DOCUMENTATION.md)
-* **Backend API & Controllers:** [backend/hrms/README.md](backend/hrms/README.md)
-* **Frontend Portal & Redux Store:** [frontend/README.md](frontend/README.md)
+## Further Reading & Architecture Reference
+* **End-to-End System Architecture & Networking:** [DOCUMENTATION.md](DOCUMENTATION.md)
+* **Backend API Details & Swagger Details:** [backend/hrms/README.md](backend/hrms/README.md)
