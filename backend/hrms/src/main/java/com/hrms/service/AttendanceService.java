@@ -22,6 +22,7 @@ public class AttendanceService {
     private final EmployeeService employeeService;
 
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = "dashboardData", allEntries = true)
     public AttendanceDTOs.Response checkIn(Long employeeId, AttendanceDTOs.CheckInRequest req) {
         Employee emp = employeeService.findById(employeeId);
         java.time.ZoneId istZone = java.time.ZoneId.of("Asia/Kolkata");
@@ -44,6 +45,7 @@ public class AttendanceService {
     }
 
     @Transactional
+    @org.springframework.cache.annotation.CacheEvict(value = "dashboardData", allEntries = true)
     public AttendanceDTOs.Response checkOut(Long employeeId, AttendanceDTOs.CheckOutRequest req) {
         Employee emp = employeeService.findById(employeeId);
         java.time.ZoneId istZone = java.time.ZoneId.of("Asia/Kolkata");
