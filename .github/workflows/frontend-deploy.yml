@@ -42,10 +42,10 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Deploy to S3
-        run: aws s3 sync ./out s3://hr-management-system-frontend-64fqj6pp/ --delete
+        run: aws s3 sync ./out s3://hr-management-system-frontend-bhl74xnc/ --delete
 
       - name: Invalidate CloudFront Cache
-        run: aws cloudfront create-invalidation --distribution-id E2QCPRK45LRQB2 --paths "/*"
+        run: aws cloudfront create-invalidation --distribution-id E2SX5QZBJA7ZH --paths "/*"
 
       - name: Pre-warm CloudFront Cache
         run: |
