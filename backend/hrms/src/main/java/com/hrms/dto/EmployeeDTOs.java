@@ -36,6 +36,7 @@ public class EmployeeDTOs {
         private LocalDate dateOfBirth;
         private Role role;
         private Boolean active;
+        private String password;
     }
 
     @Data

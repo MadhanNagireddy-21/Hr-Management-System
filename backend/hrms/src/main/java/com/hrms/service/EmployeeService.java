@@ -118,6 +118,9 @@ public class EmployeeService {
         if (req.getDateOfBirth() != null)  emp.setDateOfBirth(req.getDateOfBirth());
         if (req.getRole() != null)         emp.setRole(req.getRole());
         if (req.getActive() != null)       emp.setActive(req.getActive());
+        if (req.getPassword() != null && !req.getPassword().isBlank()) {
+            emp.setPassword(passwordEncoder.encode(req.getPassword()));
+        }
         return toResponse(employeeRepository.save(emp));
     }
 
