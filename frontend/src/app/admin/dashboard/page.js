@@ -361,7 +361,7 @@ export default function AdminDashboard() {
             <div className="table-responsive">
               <div className="admin-employees-table" style={{ minWidth: '680px' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '0.5fr 2fr 1.5fr 1.5fr 1fr 1fr', padding: '10px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
-                  {['ID', 'Name', 'Department', 'Designation', 'Role', 'Status'].map(h => (
+                  {[' Emp ID', 'Name', 'Department', 'Designation', 'Role', 'Status'].map(h => (
                     <div key={h} style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                       {h}
                     </div>
@@ -369,12 +369,12 @@ export default function AdminDashboard() {
                 </div>
 
                 {employees.slice(0, 6).map((e, i) => (
-                  <div key={e.id || e.employeeCode || i} style={{
+                  <div key={e.id || e.employeeId || i} style={{
                     display: 'grid', gridTemplateColumns: '0.5fr 2fr 1.5fr 1.5fr 1fr 1fr',
                     padding: '12px 20px', borderBottom: '1px solid #f1f5f9', alignItems: 'center',
                   }}>
                     <div style={{ fontSize: '12px', color: '#94a3b8', fontWeight: '600' }}>
-                      {e.employeeCode}
+                      {e.employeeId || e.employeeCode || '—'}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div style={{
