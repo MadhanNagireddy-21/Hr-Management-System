@@ -1,0 +1,350 @@
+{
+  "info": {
+    "name": "HRMS API Collection",
+    "description": "Complete HR Management System API - Postman Collection",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8080", "type": "string" },
+    { "key": "adminToken", "value": "", "type": "string" },
+    { "key": "empToken", "value": "", "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "1. AUTH",
+      "item": [
+        {
+          "name": "Admin Login",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "var res = pm.response.json();",
+                "if (res.data && res.data.accessToken) {",
+                "  pm.collectionVariables.set('adminToken', res.data.accessToken);",
+                "  console.log('Admin token saved');",
+                "}"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"superadmin@hrms.com\",\n  \"password\": \"Admin@123\",\n  \"loginType\": \"ADMIN\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Employee Login",
+          "event": [{
+            "listen": "test",
+            "script": {
+              "exec": [
+                "var res = pm.response.json();",
+                "if (res.data && res.data.accessToken) {",
+                "  pm.collectionVariables.set('empToken', res.data.accessToken);",
+                "  console.log('Emp token saved');",
+                "}"
+              ]
+            }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"emp@hrms.com\",\n  \"password\": \"Emp@12345\",\n  \"loginType\": \"EMPLOYEE\"\n}"
+            }
+          }
+        },
+        {
+          "name": "HR Login",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/auth/login",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"hr@hrms.com\",\n  \"password\": \"Hr@12345\",\n  \"loginType\": \"ADMIN\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": "{{baseUrl}}/api/auth/refresh",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refreshToken\": \"PASTE_REFRESH_TOKEN_HERE\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. EMPLOYEES",
+      "item": [
+        {
+          "name": "Create Employee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{adminToken}}"}
+            ],
+            "url": "{{baseUrl}}/api/employees",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"Hussain\",\n  \"lastName\": \"Gokari\",\n  \"email\": \"hussain@hrms.com\",\n  \"password\": \"Test@1234\",\n  \"phone\": \"9876543210\",\n  \"department\": \"Engineering\",\n  \"designation\": \"Java Developer\",\n  \"basicSalary\": 50000,\n  \"dateOfJoining\": \"2024-01-15\",\n  \"dateOfBirth\": \"1998-06-20\",\n  \"role\": \"EMPLOYEE\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Get All Employees",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees?page=0&size=10&sort=id",
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "10"},
+                {"key": "sort", "value": "id"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Employee By ID",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/employees/1"
+          }
+        },
+        {
+          "name": "Update Employee",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{adminToken}}"}
+            ],
+            "url": "{{baseUrl}}/api/employees/1",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"phone\": \"9999999999\",\n  \"designation\": \"Senior Java Developer\",\n  \"basicSalary\": 60000\n}"
+            }
+          }
+        },
+        {
+          "name": "Search Employees",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/search?q=hussain",
+              "query": [{"key": "q", "value": "hussain"}]
+            }
+          }
+        },
+        {
+          "name": "Deactivate Employee",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/employees/5"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. ATTENDANCE",
+      "item": [
+        {
+          "name": "Check In",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{empToken}}"}
+            ],
+            "url": "{{baseUrl}}/api/attendance/check-in",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"date\": \"2024-12-20\",\n  \"checkIn\": \"09:00:00\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Check Out",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{empToken}}"}],
+            "url": "{{baseUrl}}/api/attendance/check-out"
+          }
+        },
+        {
+          "name": "My Attendance",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{empToken}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/api/attendance/my?page=0&size=30",
+              "query": [
+                {"key": "page", "value": "0"},
+                {"key": "size", "value": "30"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Attendance By Date (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/attendance/date/2024-12-20"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. LEAVE",
+      "item": [
+        {
+          "name": "Apply Leave",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{empToken}}"}
+            ],
+            "url": "{{baseUrl}}/api/leaves/apply",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"leaveType\": \"ANNUAL\",\n  \"startDate\": \"2024-12-25\",\n  \"endDate\": \"2024-12-27\",\n  \"reason\": \"Christmas vacation\"\n}"
+            }
+          }
+        },
+        {
+          "name": "My Leaves",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{empToken}}"}],
+            "url": "{{baseUrl}}/api/leaves/my"
+          }
+        },
+        {
+          "name": "All Leaves (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/leaves"
+          }
+        },
+        {
+          "name": "Pending Leaves (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/leaves/pending"
+          }
+        },
+        {
+          "name": "Approve Leave",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{adminToken}}"}
+            ],
+            "url": "{{baseUrl}}/api/leaves/1/action",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"APPROVED\",\n  \"remarks\": \"Approved. Enjoy your vacation!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Reject Leave",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{adminToken}}"}
+            ],
+            "url": "{{baseUrl}}/api/leaves/1/action",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"REJECTED\",\n  \"remarks\": \"Critical project deadline. Please reschedule.\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Cancel Leave",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{empToken}}"}],
+            "url": "{{baseUrl}}/api/leaves/1/cancel"
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. PAYROLL",
+      "item": [
+        {
+          "name": "Generate Payroll",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{adminToken}}"}
+            ],
+            "url": "{{baseUrl}}/api/payroll/generate",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"employeeId\": 3,\n  \"month\": 12,\n  \"year\": 2024\n}"
+            }
+          }
+        },
+        {
+          "name": "My Payroll (Employee)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{empToken}}"}],
+            "url": "{{baseUrl}}/api/payroll/my"
+          }
+        },
+        {
+          "name": "Monthly Payroll (Admin)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": {
+              "raw": "{{baseUrl}}/api/payroll/month?month=12&year=2024",
+              "query": [
+                {"key": "month", "value": "12"},
+                {"key": "year", "value": "2024"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Payroll Paid",
+          "request": {
+            "method": "PUT",
+            "header": [{"key": "Authorization", "value": "Bearer {{adminToken}}"}],
+            "url": "{{baseUrl}}/api/payroll/1/mark-paid"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+name: Backend CI/CD
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'nginx/**'
+      - 'docker-compose.prod.yml'
+      - '.github/workflows/backend-deploy.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to EC2 Instance
+        env:
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USERNAME: ${{ secrets.EC2_USERNAME }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          # Save the SSH key to a file and fix Windows line endings
+          mkdir -p ~/.ssh
+          echo "$EC2_SSH_KEY" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          
+          # Run the deployment commands via native SSH
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa $EC2_USERNAME@$EC2_HOST "
+            if [ ! -d \"Hr-Management-System\" ]; then
+              git clone https://github.com/xyushman/Hr-Management-System.git || echo \"Make sure your repo is public, or clone it manually once!\"
+            fi
+            cd Hr-Management-System
+            git fetch origin
+            git checkout $BRANCH
+            git pull origin $BRANCH
+            sudo cp /opt/hrms/.env ./.env
+            sudo sed -i 's/tlsVersions=TLSv1.2,TLSv1.3/tlsVersions=TLSv1.2,TLSv1.3\&useServerPrepStmts=false\&serverTimezone=Asia%2FKolkata/g' ./.env
+            sudo docker rm -f hrms-backend hrms-nginx || true
+            sudo docker compose -f docker-compose.prod.yml up -d --build
+          "

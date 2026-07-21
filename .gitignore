@@ -1,0 +1,26 @@
+# Maven & Build outputs
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# Databases & local data
+data/
+*.db
+*.trace.db
+*.mv.db
+
+# IDEs & OS
+.idea/
+*.iml
+.vscode/
+*.DS_Store
+
+# Environment Variables & Secrets
+.env
+*.env
+!.env.sample
+!.env_sample
+!.env.example

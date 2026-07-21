@@ -1,0 +1,86 @@
+package com.hrms.controller;
+
+import com.hrms.dto.ApiResponse;
+import com.hrms.dto.PerformanceDTOs;
+import com.hrms.entity.Employee;
+import com.hrms.service.PerformanceService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/performance")
+@RequiredArgsConstructor
+@Tag(name = "Performance & Training")
+public class PerformanceController {
+
+    private final PerformanceService performanceService;
+
+    @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN','HR')")
+    @Operation(summary = "Create performance review")
+    public ResponseEntity<ApiResponse<PerformanceDTOs.Response>> create(
+            @AuthenticationPrincipal Employee reviewer,
+            @Valid @RequestBody PerformanceDTOs.CreateRequest req) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Review created",
+                        performanceService.createReview(reviewer.getId(), req)));
+    }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN','HR')")
+    @Operation(summary = "Update review")
+    public ResponseEntity<ApiResponse<PerformanceDTOs.Response>> update(
+            @PathVariable Long id,
+            @RequestBody PerformanceDTOs.UpdateRequest req) {
+        return ResponseEntity.ok(ApiResponse.success("Review updated",
+                performanceService.updateReview(id, req)));
+    }
+
+    @PutMapping("/{id}/acknowledge")
+    @Operation(summary = "Employee acknowledges their own review")
+    public ResponseEntity<ApiResponse<PerformanceDTOs.Response>> acknowledge(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Employee emp,
+            @RequestBody PerformanceDTOs.AcknowledgeRequest req) {
+        return ResponseEntity.ok(ApiResponse.success("Review acknowledged",
+                performanceService.acknowledge(id, emp.getId(), req)));
+    }
+
+    @GetMapping("/my")
+    @Operation(summary = "Get my performance reviews")
+    public ResponseEntity<ApiResponse<Page<PerformanceDTOs.Response>>> myReviews(
+            @AuthenticationPrincipal Employee emp,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(ApiResponse.success("My reviews",
+                performanceService.getMyReviews(emp.getId(),
+                        PageRequest.of(page, size, Sort.by("createdAt").descending()))));
+    }
+
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN','HR')")
+    @Operation(summary = "Get all reviews (Admin/HR)")
+    public ResponseEntity<ApiResponse<Page<PerformanceDTOs.Response>>> all(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        return ResponseEntity.ok(ApiResponse.success("All reviews",
+                performanceService.getAllReviews(PageRequest.of(page, size,
+                        Sort.by("createdAt").descending()))));
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "Get review by ID")
+    public ResponseEntity<ApiResponse<PerformanceDTOs.Response>> getById(@PathVariable Long id) {
+        return ResponseEntity.ok(ApiResponse.success("Review found", performanceService.getById(id)));
+    }
+}

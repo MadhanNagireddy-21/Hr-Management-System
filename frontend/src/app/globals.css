@@ -1,0 +1,328 @@
+@import "tailwindcss";
+
+/* =========================================================
+   RESPONSIVE GLOBAL LAYOUT & MOBILE BREAKPOINTS (< 768px)
+   ========================================================= */
+
+html, body {
+  overflow-x: hidden !important;
+  margin: 0;
+  padding: 0;
+  background: #f8fafc;
+  color: #1e293b;
+  width: 100%;
+  max-width: 100vw;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* Base Layout Containers */
+.app-container {
+  display: flex;
+  min-height: 100vh;
+  background: #f8fafc;
+  position: relative;
+  overflow-x: hidden !important;
+  width: 100%;
+}
+
+.app-sidebar {
+  width: 240px;
+  flex-shrink: 0;
+  background: #1e3a5f;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 50;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.1);
+}
+
+.app-navbar {
+  position: fixed;
+  top: 0;
+  left: 240px;
+  right: 0;
+  z-index: 30;
+  height: 60px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+.app-main-content {
+  flex: 1;
+  margin-left: 240px;
+  width: calc(100% - 240px);
+  min-height: 100vh;
+  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-sizing: border-box;
+}
+
+.app-main-padding {
+  margin-top: 60px;
+  padding: 24px;
+  max-width: 1600px;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   DASHBOARD GRIDS DESKTOP BASE
+   ========================================================= */
+.dashboard-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.dashboard-main-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.dashboard-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin-top: 20px;
+}
+
+/* =========================================================
+   MOBILE SCREENS (< 768px / Phones & Tablets including iPhone 12)
+   ========================================================= */
+@media (max-width: 768px) {
+  /* Hide sidebar off-screen by default on mobile */
+  .app-sidebar {
+    transform: translateX(-100%) !important;
+  }
+
+  /* Slide sidebar in when opened */
+  .app-sidebar.mobile-open {
+    transform: translateX(0) !important;
+    box-shadow: 4px 0 28px rgba(0, 0, 0, 0.45);
+  }
+
+  /* Expand Navbar across 100% screen width on mobile */
+  .app-navbar {
+    left: 0 !important;
+    width: 100% !important;
+    padding: 0 12px !important;
+  }
+
+  /* Expand Main Content across 100% screen width on mobile */
+  .app-main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+
+  /* Reduce main content padding on small phone screens */
+  .app-main-padding {
+    padding: 14px !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+
+  /* Show hamburger button on mobile */
+  .mobile-hamburger {
+    display: flex !important;
+  }
+
+  /* Mobile overlay backdrop when sidebar is open */
+  .mobile-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(15, 23, 42, 0.65);
+    z-index: 45;
+    backdrop-filter: blur(3px);
+    animation: fadeIn 0.2s ease-out;
+  }
+
+  /* Adjust Navbar items for narrow screens (iPhone 12 / etc.) */
+  .nav-search-box {
+    max-width: 130px !important;
+    width: 100% !important;
+  }
+  .nav-role-badge {
+    display: none !important;
+  }
+  .nav-right-side {
+    gap: 10px !important;
+  }
+
+  /* Dashboard Grids -> 2x2 cards and stacked 1-column layouts */
+  .dashboard-stats-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  .dashboard-main-grid {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .dashboard-actions-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* =========================================================
+     UNIVERSAL DOM ATTRIBUTE OVERRIDES FOR EVERY PAGE (< 768px)
+     ========================================================= */
+  /* 1. Convert ANY 2-column or split layout grid into a single vertical column on mobile */
+  div[style*="grid-template-columns: 1fr 1fr"],
+  div[style*="grid-template-columns: 1fr 1.3fr"],
+  div[style*="grid-template-columns: 1fr 1.4fr"],
+  div[style*="grid-template-columns: 1fr 1.5fr"],
+  div[style*="grid-template-columns: 380px 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  /* 2. Convert ANY 3-column, 4-column, or 5-column grid into 2x2 or stacked grid on mobile */
+  div[style*="grid-template-columns: repeat(3, 1fr)"],
+  div[style*="grid-template-columns: repeat(4, 1fr)"],
+  div[style*="grid-template-columns: repeat(5, 1fr)"],
+  div[style*="grid-template-columns: 1fr 1fr 1fr"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 12px !important;
+  }
+
+  /* 3. Make ALL Modal & Overlay dialog boxes fit mobile phone screens cleanly */
+  div[style*="max-height: 90vh"],
+  div[style*="maxHeight: '90vh'"] {
+    padding: 20px 16px !important;
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: 85vh !important;
+    border-radius: 16px !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* Tiny Mobile Screens (< 480px / iPhone SE & Androids) */
+@media (max-width: 480px) {
+  .nav-search-box {
+    max-width: 110px !important;
+  }
+  .nav-user-info {
+    display: none !important;
+  }
+  .nav-divider {
+    display: none !important;
+  }
+  .login-card {
+    padding: 24px 16px !important;
+    margin: 8px !important;
+    width: calc(100vw - 24px) !important;
+    border-radius: 20px !important;
+  }
+
+  div[style*="grid-template-columns: repeat(3, 1fr)"],
+  div[style*="grid-template-columns: repeat(4, 1fr)"],
+  div[style*="grid-template-columns: repeat(5, 1fr)"],
+  div[style*="grid-template-columns: 1fr 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .dashboard-stats-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-hamburger {
+    display: none !important;
+  }
+  .mobile-overlay {
+    display: none !important;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* =========================================================
+   TABLE & CARD UNIVERSAL MOBILE OPTIMIZATIONS
+   ========================================================= */
+.table-responsive {
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  border-radius: 12px;
+  display: block !important;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-sizing: border-box !important;
+}
+
+/* Ensure data table grids don't compress past legible column widths */
+.admin-employees-table,
+div[style*="0.5fr 2fr 1.5fr"],
+div[style*="0.6fr 2fr 1.2fr"],
+div[style*="2fr 1.2fr 1fr"],
+div[style*="2fr 1.2fr 1.2fr"],
+div[style*="2fr 1fr 1fr"],
+div[style*="1.5fr 1fr 1fr"],
+div[style*="grid-template-columns: 0.5fr 2fr"],
+div[style*="grid-template-columns: 0.6fr 2fr"],
+div[style*="grid-template-columns: 2fr 1.2fr"],
+div[style*="grid-template-columns: 2fr 1fr 1fr"],
+div[style*="grid-template-columns: 1.5fr 1fr"] {
+  min-width: 720px !important;
+  width: 100% !important;
+}
+
+/* Ensure columns inside data table rows never wrap or smash together */
+div[style*="0.5fr 2fr"] > div,
+div[style*="0.6fr 2fr"] > div,
+div[style*="2fr 1.2fr"] > div,
+div[style*="2fr 1fr 1fr"] > div,
+div[style*="1.5fr 1fr"] > div {
+  white-space: nowrap !important;
+}
+
+/* Universal login container responsive constraints */
+.login-container {
+  width: 100%;
+  max-width: 100vw;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+@media (max-width: 640px) {
+  /* Make login cards adjust gracefully on all small phone screens */
+  .login-card {
+    padding: 24px 20px !important;
+    margin: 12px !important;
+    width: calc(100vw - 32px) !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Responsive font adjustments */
+  h1 { font-size: 1.35rem !important; }
+  h2 { font-size: 1.15rem !important; }
+}

@@ -1,0 +1,1 @@
+TOKEN=$(curl -s -X POST http://localhost:8080/api/auth/login -H "Content-Type: application/json" -d "{\"email\":\"emp@hrms.com\", \"password\":\"Emp@12345\"}" | grep -o "\"token\":\"[^\"]*" | cut -d"\"" -f4); curl -s -H "Authorization: Bearer $TOKEN" http://localhost:8080/api/attendance/my

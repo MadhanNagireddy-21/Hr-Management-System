@@ -1,0 +1,221 @@
+'use client';
+import { useEffect, useState, useMemo } from 'react';
+import { getAttendanceSummaryByDate } from '@/lib/adminApi';
+import EmployeeAttendanceModal from './EmployeeAttendanceModal';
+import toast from 'react-hot-toast';
+
+const STATUS_COLORS = {
+    PRESENT: { bg: '#dcfce7', color: '#16a34a' },
+    HALF_DAY: { bg: '#fff7ed', color: '#f59e0b' },
+    ON_LEAVE: { bg: '#eff6ff', color: '#3b82f6' },
+    ABSENT: { bg: '#fee2e2', color: '#dc2626' },
+};
+
+function StatusBadge({ status }) {
+    const s = STATUS_COLORS[status] || { bg: '#f1f5f9', color: '#64748b' };
+    return (
+        <span style={{
+            background: s.bg, color: s.color,
+            padding: '3px 10px', borderRadius: '20px',
+            fontSize: '11px', fontWeight: '700',
+        }}>
+            {status?.replace(/_/g, ' ')}
+        </span>
+    );
+}
+
+function todayIST() {
+    const now = new Date();
+    const ist = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
+    return ist.toISOString().split('T')[0];
+}
+
+export default function AttendanceReport() {
+    const [date, setDate] = useState(todayIST());
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('ALL');
+    const [rows, setRows] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
+
+    useEffect(() => {
+        let active = true;
+        setLoading(true);
+        getAttendanceSummaryByDate(date, page, 50)
+            .then((res) => {
+                if (!active) return;
+                const pageData = res.data?.data;
+                setRows(pageData?.content || []);
+                setTotalPages(pageData?.totalPages ?? 1);
+            })
+            .catch((err) => {
+                toast.error(err.response?.data?.message || 'Failed to load attendance');
+            })
+            .finally(() => {
+                if (active) setLoading(false);
+            });
+        return () => { active = false; };
+    }, [date, page]);
+
+    const filteredRows = useMemo(() => {
+        return rows.filter((r) => {
+            const matchesSearch = !search ||
+                r.employeeName?.toLowerCase().includes(search.toLowerCase()) ||
+                r.employeeCode?.toLowerCase().includes(search.toLowerCase());
+            const matchesStatus = statusFilter === 'ALL' || r.status === statusFilter;
+            return matchesSearch && matchesStatus;
+        });
+    }, [rows, search, statusFilter]);
+
+    return (
+        <div>
+            <div style={{ marginBottom: '20px' }}>
+                <h1 style={{ fontSize: '22px', fontWeight: '800', color: '#1e293b', marginBottom: '4px' }}>
+                    Attendance report
+                </h1>
+                <p style={{ fontSize: '13px', color: '#94a3b8' }}>
+                    View attendance for all employees by date.
+                </p>
+            </div>
+
+            <div style={{
+                display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap',
+                background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px',
+            }}>
+                <input
+                    type="text"
+                    placeholder="Search employee or code..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    style={{
+                        flex: 1, minWidth: '200px', padding: '8px 12px',
+                        border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px',
+                    }}
+                />
+                <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => { setDate(e.target.value); setPage(0); }}
+                    style={{
+                        padding: '8px 12px', border: '1px solid #e2e8f0',
+                        borderRadius: '8px', fontSize: '13px',
+                    }}
+                />
+                <select
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                    style={{
+                        padding: '8px 12px', border: '1px solid #e2e8f0',
+                        borderRadius: '8px', fontSize: '13px',
+                    }}
+                >
+                    <option value="ALL">All status</option>
+                    <option value="PRESENT">Present</option>
+                    <option value="HALF_DAY">Half day</option>
+                    <option value="ON_LEAVE">On leave</option>
+                    <option value="ABSENT">Absent</option>
+                </select>
+            </div>
+
+            <div style={{
+                background: 'white', borderRadius: '12px', border: '1px solid #e2e8f0',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.04)', overflow: 'hidden',
+            }}>
+                <div className="table-responsive">
+                    <div style={{ minWidth: '680px' }}>
+                        <div style={{
+                            display: 'grid', gridTemplateColumns: '2fr 1.3fr 1fr 1fr 1fr 0.8fr',
+                            padding: '10px 20px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0',
+                        }}>
+                            {['Name', 'Department', 'Status', 'Check in', 'Check out', ''].map((h) => (
+                                <div key={h} style={{
+                                    fontSize: '11px', fontWeight: '700', color: '#64748b',
+                                    textTransform: 'uppercase', letterSpacing: '0.5px',
+                                }}>
+                                    {h}
+                                </div>
+                            ))}
+                        </div>
+
+                        {loading ? (
+                            <div style={{ textAlign: 'center', padding: '60px', color: '#94a3b8' }}>Loading...</div>
+                        ) : filteredRows.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '60px', color: '#94a3b8' }}>
+                                No attendance records found for this date.
+                            </div>
+                        ) : (
+                            filteredRows.map((r) => (
+                                <div key={r.employeeId} style={{
+                                    display: 'grid', gridTemplateColumns: '2fr 1.3fr 1fr 1fr 1fr 0.8fr',
+                                    padding: '12px 20px', borderBottom: '1px solid #f1f5f9', alignItems: 'center',
+                                }}>
+                                    <div>
+                                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#1e293b' }}>
+                                            {r.employeeName}
+                                        </div>
+                                        <div style={{ fontSize: '11px', color: '#94a3b8' }}>{r.employeeCode}</div>
+                                    </div>
+                                    <div style={{ fontSize: '13px', color: '#64748b' }}>{r.departmentName || '—'}</div>
+                                    <div><StatusBadge status={r.status} /></div>
+                                    <div style={{ fontSize: '13px', color: '#64748b' }}>
+                                        {r.checkIn ? String(r.checkIn).slice(0, 5) : '--'}
+                                    </div>
+                                    <div style={{ fontSize: '13px', color: '#64748b' }}>
+                                        {r.checkOut ? String(r.checkOut).slice(0, 5) : '--'}
+                                    </div>
+                                    <div>
+                                        <button
+                                            onClick={() => setSelectedEmployeeId(r.employeeId)}
+                                            style={{
+                                                padding: '6px 14px', background: '#eff6ff', color: '#3b82f6',
+                                                border: '1px solid #bfdbfe', borderRadius: '6px',
+                                                fontSize: '12px', fontWeight: '700', cursor: 'pointer',
+                                            }}
+                                        >
+                                            View
+                                        </button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
+                    </div>
+                </div>
+
+                {totalPages > 1 && (
+                    <div style={{
+                        display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px',
+                        padding: '14px', borderTop: '1px solid #f1f5f9',
+                    }}>
+                        <button
+                            disabled={page === 0}
+                            onClick={() => setPage((p) => Math.max(0, p - 1))}
+                            style={{ padding: '6px 14px', fontSize: '12px', cursor: page === 0 ? 'not-allowed' : 'pointer' }}
+                        >
+                            ← Prev
+                        </button>
+                        <span style={{ fontSize: '12px', color: '#64748b' }}>
+                            Page {page + 1} of {totalPages}
+                        </span>
+                        <button
+                            disabled={page + 1 >= totalPages}
+                            onClick={() => setPage((p) => p + 1)}
+                            style={{ padding: '6px 14px', fontSize: '12px', cursor: page + 1 >= totalPages ? 'not-allowed' : 'pointer' }}
+                        >
+                            Next →
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {selectedEmployeeId && (
+                <EmployeeAttendanceModal
+                    employeeId={selectedEmployeeId}
+                    asOfDate={date}
+                    onClose={() => setSelectedEmployeeId(null)}
+                />
+            )}
+        </div>
+    );
+}
