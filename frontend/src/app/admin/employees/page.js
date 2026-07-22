@@ -142,7 +142,7 @@ export default function EmployeeManagementPage() {
     setEditMode(true);
     setEditId(emp.id);
     setForm({
-     employeeId: emp.employeeId || '',
+      employeeId: emp.employeeId || '',
       firstName: emp.firstName || '',
       lastName: emp.lastName || '',
       email: emp.email || '',
