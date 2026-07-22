@@ -73,6 +73,24 @@ export const getEmployeeAttendanceSummary = (employeeId, date) =>
     params: date ? { date } : {},
   });
 
+// ── Attendance report: export to Excel ──
+export const exportAttendanceRange = (from, to, status, search) =>
+  api.get('/api/attendance/admin/export', {
+    params: {
+      from,
+      to,
+      status: status && status !== 'ALL' ? status : undefined,
+      search: search || undefined,
+    },
+    responseType: 'blob',
+  });
+
+export const exportEmployeeAttendanceRange = (employeeId, from, to) =>
+  api.get(`/api/attendance/admin/employee/${employeeId}/export`, {
+    params: { from, to },
+    responseType: 'blob',
+  });
+
 export const getAllOnboarding = () =>
   api.get('/api/onboarding');
 

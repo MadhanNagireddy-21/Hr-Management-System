@@ -11,6 +11,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -59,7 +61,6 @@ public class AttendanceController {
                         PageRequest.of(page, size, Sort.by("date").descending()))));
     }
 
-    // NEW: Employee get their own detailed report
     @GetMapping("/my/detailed-report")
     @Operation(summary = "Get my detailed attendance report (yesterday, weekly, monthly)")
     public ResponseEntity<ApiResponse<AttendanceDTOs.EmployeeDetailedReport>> getMyDetailedReport(
@@ -86,7 +87,6 @@ public class AttendanceController {
                 attendanceService.getAttendanceByDate(date, PageRequest.of(page, size))));
     }
 
-    // NEW: Admin get all employees attendance summary for a date
     @GetMapping("/admin/summary/{date}")
     @PreAuthorize("hasAnyRole('ADMIN','HR')")
     @Operation(summary = "Get all employees attendance summary for a date (Admin/HR)")
@@ -98,7 +98,6 @@ public class AttendanceController {
                 attendanceService.getAllEmployeesSummaryByDate(date, PageRequest.of(page, size))));
     }
 
-    // NEW: Admin get specific employee attendance summary
     @GetMapping("/admin/employee/{employeeId}/summary")
     @PreAuthorize("hasAnyRole('ADMIN','HR')")
     @Operation(summary = "Get employee attendance summary for a date (Admin/HR)")
@@ -113,7 +112,6 @@ public class AttendanceController {
                 attendanceService.getEmployeeAttendanceSummary(employeeId, date)));
     }
 
-    // NEW: Admin get detailed report for any employee
     @GetMapping("/admin/employee/{employeeId}/detailed-report")
     @PreAuthorize("hasAnyRole('ADMIN','HR')")
     @Operation(summary = "Get detailed attendance report for employee (yesterday, weekly, monthly) - Admin/HR only")
@@ -126,5 +124,40 @@ public class AttendanceController {
         }
         return ResponseEntity.ok(ApiResponse.success("Detailed attendance report",
                 attendanceService.getEmployeeDetailedReport(employeeId, asOfDate)));
+    }
+
+    // ===== EXPORT ENDPOINTS =====
+
+    @GetMapping("/admin/export")
+    @PreAuthorize("hasAnyRole('ADMIN','HR')")
+    @Operation(summary = "Export attendance for all employees over a date range as Excel (Admin/HR)")
+    public ResponseEntity<byte[]> exportAttendance(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String search) {
+        byte[] file = attendanceService.exportAttendanceRange(from, to, status, search);
+        String filename = "attendance_" + from + "_to_" + to + ".xlsx";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(
+                        MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(file);
+    }
+
+    @GetMapping("/admin/employee/{employeeId}/export")
+    @PreAuthorize("hasAnyRole('ADMIN','HR')")
+    @Operation(summary = "Export one employee's attendance over a date range as Excel (Admin/HR)")
+    public ResponseEntity<byte[]> exportEmployeeAttendance(
+            @PathVariable Long employeeId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
+        byte[] file = attendanceService.exportEmployeeAttendanceRange(employeeId, from, to);
+        String filename = "attendance_emp" + employeeId + "_" + from + "_to_" + to + ".xlsx";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(
+                        MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(file);
     }
 }

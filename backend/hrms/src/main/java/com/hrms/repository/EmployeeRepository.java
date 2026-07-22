@@ -27,6 +27,8 @@ public interface EmployeeRepository extends JpaRepository<Employee, Long> {
 
     Page<Employee> findByActive(boolean active, Pageable pageable);
 
+    List<Employee> findByActiveTrue();
+
     @Query("""
                 SELECT e FROM Employee e
                 WHERE LOWER(e.firstName) LIKE LOWER(CONCAT('%', :q, '%'))

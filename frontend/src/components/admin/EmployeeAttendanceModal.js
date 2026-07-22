@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { getEmployeeDetailedReport } from '@/lib/adminApi';
+import { getEmployeeDetailedReport, exportEmployeeAttendanceRange } from '@/lib/adminApi';
+import { downloadBlob } from '@/lib/downloadFile';
 import toast from 'react-hot-toast';
 
 const STATUS_COLORS = {
@@ -51,6 +52,9 @@ function DayCell({ day }) {
 export default function EmployeeAttendanceModal({ employeeId, asOfDate, onClose }) {
     const [report, setReport] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [fromDate, setFromDate] = useState(asOfDate ? asOfDate.slice(0, 8) + '01' : '');
+    const [toDate, setToDate] = useState(asOfDate);
+    const [exporting, setExporting] = useState(false);
 
     useEffect(() => {
         let active = true;
@@ -73,6 +77,18 @@ export default function EmployeeAttendanceModal({ employeeId, asOfDate, onClose 
         window.addEventListener('keydown', onKey);
         return () => window.removeEventListener('keydown', onKey);
     }, [onClose]);
+
+    const handleExport = async () => {
+        setExporting(true);
+        try {
+            const res = await exportEmployeeAttendanceRange(employeeId, fromDate, toDate);
+            downloadBlob(res, `attendance_emp${employeeId}_${fromDate}_to_${toDate}.xlsx`);
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Export failed');
+        } finally {
+            setExporting(false);
+        }
+    };
 
     return (
         <div
@@ -119,7 +135,37 @@ export default function EmployeeAttendanceModal({ employeeId, asOfDate, onClose 
                             </button>
                         </div>
 
-                        <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginBottom: '16px' }}>
+                        <div style={{
+                            display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap',
+                            borderTop: '1px solid #f1f5f9', paddingTop: '12px', marginBottom: '16px',
+                        }}>
+                            <input
+                                type="date"
+                                value={fromDate}
+                                onChange={(e) => setFromDate(e.target.value)}
+                                style={{ padding: '6px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px' }}
+                            />
+                            <span style={{ fontSize: '12px', color: '#94a3b8' }}>to</span>
+                            <input
+                                type="date"
+                                value={toDate}
+                                onChange={(e) => setToDate(e.target.value)}
+                                style={{ padding: '6px 10px', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '12px' }}
+                            />
+                            <button
+                                onClick={handleExport}
+                                disabled={exporting}
+                                style={{
+                                    marginLeft: 'auto', padding: '6px 14px', background: '#1e3a5f', color: 'white',
+                                    border: 'none', borderRadius: '6px', fontSize: '12px', fontWeight: '700',
+                                    cursor: exporting ? 'not-allowed' : 'pointer',
+                                }}
+                            >
+                                {exporting ? 'Exporting...' : '⬇ Export'}
+                            </button>
+                        </div>
+
+                        <div style={{ marginBottom: '16px' }}>
                             <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase', marginBottom: '6px' }}>
                                 Yesterday ({report.yesterdayDate})
                             </div>
