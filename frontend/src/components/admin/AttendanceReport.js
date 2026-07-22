@@ -45,7 +45,6 @@ export default function AttendanceReport() {
 
     useEffect(() => {
         let active = true;
-        setLoading(true);
         getAttendanceSummaryByDate(toDate, page, 50)
             .then((res) => {
                 if (!active) return;
@@ -121,7 +120,7 @@ export default function AttendanceReport() {
                 <input
                     type="date"
                     value={toDate}
-                    onChange={(e) => { setToDate(e.target.value); setPage(0); }}
+                    onChange={(e) => { setLoading(true); setToDate(e.target.value); setPage(0); }}
                     style={{
                         padding: '8px 12px', border: '1px solid #e2e8f0',
                         borderRadius: '8px', fontSize: '13px',
@@ -225,7 +224,7 @@ export default function AttendanceReport() {
                     }}>
                         <button
                             disabled={page === 0}
-                            onClick={() => setPage((p) => Math.max(0, p - 1))}
+                            onClick={() => { setLoading(true); setPage((p) => Math.max(0, p - 1)); }}
                             style={{ padding: '6px 14px', fontSize: '12px', cursor: page === 0 ? 'not-allowed' : 'pointer' }}
                         >
                             ← Prev
@@ -235,7 +234,7 @@ export default function AttendanceReport() {
                         </span>
                         <button
                             disabled={page + 1 >= totalPages}
-                            onClick={() => setPage((p) => p + 1)}
+                            onClick={() => { setLoading(true); setPage((p) => p + 1); }}
                             style={{ padding: '6px 14px', fontSize: '12px', cursor: page + 1 >= totalPages ? 'not-allowed' : 'pointer' }}
                         >
                             Next →
@@ -246,6 +245,7 @@ export default function AttendanceReport() {
 
             {selectedEmployeeId && (
                 <EmployeeAttendanceModal
+                    key={`${selectedEmployeeId}-${toDate}`}
                     employeeId={selectedEmployeeId}
                     asOfDate={toDate}
                     onClose={() => setSelectedEmployeeId(null)}

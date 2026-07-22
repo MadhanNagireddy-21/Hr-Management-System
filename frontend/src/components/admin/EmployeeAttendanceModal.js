@@ -58,7 +58,6 @@ export default function EmployeeAttendanceModal({ employeeId, asOfDate, onClose 
 
     useEffect(() => {
         let active = true;
-        setLoading(true);
         getEmployeeDetailedReport(employeeId, asOfDate)
             .then((res) => {
                 if (active) setReport(res.data?.data || null);
