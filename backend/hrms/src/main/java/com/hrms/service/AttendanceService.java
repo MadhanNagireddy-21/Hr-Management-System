@@ -259,14 +259,39 @@ public class AttendanceService {
                 headers.add(d.toString());
             headers.addAll(List.of("Total hours", "Present", "Half day", "Absent", "Leave", "Late arrivals"));
 
-            Row headerRow = sheet.createRow(0);
+            CellStyle titleStyle = wb.createCellStyle();
+            Font titleFont = wb.createFont();
+            titleFont.setBold(true);
+            titleFont.setFontHeightInPoints((short) 14);
+            titleStyle.setFont(titleFont);
+            titleStyle.setAlignment(HorizontalAlignment.CENTER);
+
+            CellStyle subtitleStyle = wb.createCellStyle();
+            Font subtitleFont = wb.createFont();
+            subtitleFont.setBold(true);
+            subtitleStyle.setFont(subtitleFont);
+            subtitleStyle.setAlignment(HorizontalAlignment.CENTER);
+
+            Row titleRow = sheet.createRow(0);
+            Cell titleCell = titleRow.createCell(0);
+            titleCell.setCellValue("Attendance Report");
+            titleCell.setCellStyle(titleStyle);
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(0, 0, 0, headers.size() - 1));
+
+            Row subtitleRow = sheet.createRow(1);
+            Cell subtitleCell = subtitleRow.createCell(0);
+            subtitleCell.setCellValue("From Date: " + from.toString() + "    To Date: " + to.toString());
+            subtitleCell.setCellStyle(subtitleStyle);
+            sheet.addMergedRegion(new org.apache.poi.ss.util.CellRangeAddress(1, 1, 0, headers.size() - 1));
+
+            Row headerRow = sheet.createRow(2);
             for (int i = 0; i < headers.size(); i++) {
                 Cell c = headerRow.createCell(i);
                 c.setCellValue(headers.get(i));
                 c.setCellStyle(headerStyle);
             }
 
-            int rowIdx = 1;
+            int rowIdx = 3;
             for (Map.Entry<Employee, Map<LocalDate, Attendance>> entry : data) {
                 Employee emp = entry.getKey();
                 Map<LocalDate, Attendance> recordMap = entry.getValue();

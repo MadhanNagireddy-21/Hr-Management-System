@@ -12,5 +12,10 @@ import java.util.Optional;
 @Repository
 public interface OnboardingRepository extends JpaRepository<Onboarding, Long> {
     Optional<Onboarding> findByEmployee(Employee employee);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"employee", "assignedHr"})
+    Page<Onboarding> findAll(Pageable pageable);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"employee", "assignedHr"})
     Page<Onboarding> findByStatus(OnboardingStatus status, Pageable pageable);
 }

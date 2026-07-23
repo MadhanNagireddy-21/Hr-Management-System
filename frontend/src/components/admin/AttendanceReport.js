@@ -75,7 +75,7 @@ export default function AttendanceReport() {
         setExporting(true);
         try {
             const res = await exportAttendanceRange(fromDate, toDate, statusFilter, search);
-            downloadBlob(res, `attendance_${fromDate}_to_${toDate}.xlsx`);
+            downloadBlob(res, `Attendance_Report_${fromDate}_to_${toDate}.xlsx`);
         } catch (err) {
             toast.error(err.response?.data?.message || 'Export failed');
         } finally {
@@ -95,7 +95,7 @@ export default function AttendanceReport() {
             </div>
 
             <div style={{
-                display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap',
+                display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'flex-end',
                 background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '14px 16px',
             }}>
                 <input
@@ -108,24 +108,30 @@ export default function AttendanceReport() {
                         border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '13px',
                     }}
                 />
-                <input
-                    type="date"
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                    style={{
-                        padding: '8px 12px', border: '1px solid #e2e8f0',
-                        borderRadius: '8px', fontSize: '13px',
-                    }}
-                />
-                <input
-                    type="date"
-                    value={toDate}
-                    onChange={(e) => { setLoading(true); setToDate(e.target.value); setPage(0); }}
-                    style={{
-                        padding: '8px 12px', border: '1px solid #e2e8f0',
-                        borderRadius: '8px', fontSize: '13px',
-                    }}
-                />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '700', color: '#1e3a5f' }}>From Date</span>
+                    <input
+                        type="date"
+                        value={fromDate}
+                        onChange={(e) => setFromDate(e.target.value)}
+                        style={{
+                            padding: '8px 12px', border: '1px solid #e2e8f0',
+                            borderRadius: '8px', fontSize: '13px',
+                        }}
+                    />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <span style={{ fontSize: '11px', fontWeight: '700', color: '#1e3a5f' }}>To Date</span>
+                    <input
+                        type="date"
+                        value={toDate}
+                        onChange={(e) => { setLoading(true); setToDate(e.target.value); setPage(0); }}
+                        style={{
+                            padding: '8px 12px', border: '1px solid #e2e8f0',
+                            borderRadius: '8px', fontSize: '13px',
+                        }}
+                    />
+                </div>
                 <select
                     value={statusFilter}
                     onChange={(e) => setStatusFilter(e.target.value)}
