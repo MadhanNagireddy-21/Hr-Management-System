@@ -109,7 +109,7 @@ export default function AttendanceReport() {
                     }}
                 />
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>From Date</span>
+                    <span style={{ fontSize: '11px', fontWeight: '700', color: '#1e3a5f' }}>From Date</span>
                     <input
                         type="date"
                         value={fromDate}
@@ -121,7 +121,7 @@ export default function AttendanceReport() {
                     />
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: '600', color: '#64748b' }}>To Date</span>
+                    <span style={{ fontSize: '11px', fontWeight: '700', color: '#1e3a5f' }}>To Date</span>
                     <input
                         type="date"
                         value={toDate}
