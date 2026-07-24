@@ -24,3 +24,4 @@ data/
 !.env.sample
 !.env_sample
 !.env.example
+infrastructure.zip

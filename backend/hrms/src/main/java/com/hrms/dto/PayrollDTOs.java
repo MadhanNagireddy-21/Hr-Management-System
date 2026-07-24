@@ -10,9 +10,13 @@ public class PayrollDTOs {
 
     @Data
     public static class GenerateRequest {
-        @NotNull private Long employeeId;
-        @Min(1) @Max(12) private int month;
-        @Min(2020) private int year;
+        @NotNull
+        private Long employeeId;
+        @Min(1)
+        @Max(12)
+        private int month;
+        @Min(2020)
+        private int year;
     }
 
     @Data
@@ -34,7 +38,7 @@ public class PayrollDTOs {
         private BigDecimal tds;
         private BigDecimal totalDeductions;
         private BigDecimal netSalary;
-        private double presentDays;
+        private int presentDays;
         private int lopDays;
         private boolean paid;
         private LocalDate payDate;

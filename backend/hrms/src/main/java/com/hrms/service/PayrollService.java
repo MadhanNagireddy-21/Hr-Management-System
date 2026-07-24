@@ -3,7 +3,6 @@ package com.hrms.service;
 import com.hrms.dto.PayrollDTOs;
 import com.hrms.entity.Employee;
 import com.hrms.entity.Payroll;
-import com.hrms.repository.AttendanceRepository;
 import com.hrms.repository.PayrollRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -13,9 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.time.LocalDate;
 import java.time.YearMonth;
-import java.util.List;
 import java.util.NoSuchElementException;
 
 @Service
@@ -24,53 +21,60 @@ public class PayrollService {
 
     private final PayrollRepository payrollRepo;
     private final EmployeeService employeeService;
-    private final AttendanceRepository attendanceRepo;
+
+    // ---- Configurable rates (adjust to match your company policy) ----
+    private static final BigDecimal HRA_RATE = new BigDecimal("0.40");
+    private static final BigDecimal DA_RATE = new BigDecimal("0.10");
+    private static final BigDecimal PF_RATE = new BigDecimal("0.12");
+    private static final BigDecimal ESI_RATE = new BigDecimal("0.0075");
+    private static final BigDecimal ESI_GROSS_LIMIT = new BigDecimal("21000");
+    private static final BigDecimal PT_AMOUNT = new BigDecimal("200");
+    private static final BigDecimal PT_GROSS_THRESHOLD = new BigDecimal("15000");
 
     @Transactional
-    public PayrollDTOs.Response generatePayroll(PayrollDTOs.GenerateRequest req) {
-        Employee emp = employeeService.findById(req.getEmployeeId());
+    public PayrollDTOs.Response generatePayroll(PayrollDTOs.GenerateRequest request) {
+        Employee employee = employeeService.findById(request.getEmployeeId());
 
-        if (payrollRepo.findByEmployeeAndMonthAndYear(emp, req.getMonth(), req.getYear()).isPresent()) {
-            throw new IllegalStateException("Payroll already generated for this month/year");
+        if (payrollRepo.findByEmployeeAndMonthAndYear(employee, request.getMonth(), request.getYear()).isPresent()) {
+            throw new IllegalStateException("Payroll already generated for this employee for this month");
         }
 
-        BigDecimal basic = emp.getBasicSalary();
+        BigDecimal basic = employee.getBasicSalary();
+        if (basic == null) {
+            throw new IllegalStateException("Employee has no basic salary set: " + employee.getEmployeeId());
+        }
 
-        YearMonth ym = YearMonth.of(req.getYear(), req.getMonth());
-        LocalDate from = ym.atDay(1);
-        LocalDate to = ym.atEndOfMonth();
-        long fullDays = attendanceRepo.countByEmployeeAndDateBetweenAndStatus(emp, from, to, com.hrms.enums.AttendanceStatus.PRESENT);
-        long halfDays = attendanceRepo.countByEmployeeAndDateBetweenAndStatus(emp, from, to, com.hrms.enums.AttendanceStatus.HALF_DAY);
-        double presentDays = fullDays + (halfDays * 0.5);
-        int workingDaysInMonth = countWorkingDays(from, to);
-        int lopDays = Math.max(0, workingDaysInMonth - (int) Math.ceil(presentDays));
+        int standardDays = YearMonth.of(request.getYear(), request.getMonth()).lengthOfMonth();
+        int presentDays = standardDays; // no attendance integration yet — assumes full month present
+        int lopDays = 0;
 
-        BigDecimal proRatedBasic = basic.multiply(BigDecimal.valueOf(presentDays))
-                .divide(BigDecimal.valueOf(workingDaysInMonth), 2, RoundingMode.HALF_UP);
+        BigDecimal targetGross = basic;
+        BigDecimal actualBasic = round(targetGross.multiply(new BigDecimal("0.50")));
+        BigDecimal hra = round(actualBasic.multiply(HRA_RATE));
+        BigDecimal da = round(actualBasic.multiply(DA_RATE));
+        BigDecimal specialAllowance = targetGross.subtract(actualBasic).subtract(hra).subtract(da);
 
-        BigDecimal hra            = proRatedBasic.multiply(new BigDecimal("0.40")).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal da             = proRatedBasic.multiply(new BigDecimal("0.10")).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal specialAllow   = proRatedBasic.multiply(new BigDecimal("0.20")).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal grossSalary    = proRatedBasic.add(hra).add(da).add(specialAllow);
+        basic = actualBasic;
+        BigDecimal grossSalary = basic.add(hra).add(da).add(specialAllowance);
 
-        BigDecimal pf    = proRatedBasic.multiply(new BigDecimal("0.12")).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal esi   = grossSalary.compareTo(new BigDecimal("21000")) <= 0
-                ? grossSalary.multiply(new BigDecimal("0.0075")).setScale(2, RoundingMode.HALF_UP)
+        BigDecimal pf = round(basic.multiply(PF_RATE));
+        BigDecimal esi = grossSalary.compareTo(ESI_GROSS_LIMIT) <= 0
+                ? round(grossSalary.multiply(ESI_RATE))
                 : BigDecimal.ZERO;
-        BigDecimal pt    = calculateProfessionalTax(grossSalary);
-        BigDecimal tds   = BigDecimal.ZERO;
+        BigDecimal pt = grossSalary.compareTo(PT_GROSS_THRESHOLD) > 0 ? PT_AMOUNT : BigDecimal.ZERO;
+        BigDecimal tds = BigDecimal.ZERO; // no tax slab logic yet
 
         BigDecimal totalDeductions = pf.add(esi).add(pt).add(tds);
-        BigDecimal netSalary       = grossSalary.subtract(totalDeductions);
+        BigDecimal netSalary = grossSalary.subtract(totalDeductions);
 
         Payroll payroll = Payroll.builder()
-                .employee(emp)
-                .month(req.getMonth())
-                .year(req.getYear())
-                .basicSalary(proRatedBasic)
+                .employee(employee)
+                .month(request.getMonth())
+                .year(request.getYear())
+                .basicSalary(basic)
                 .hra(hra)
                 .da(da)
-                .specialAllowance(specialAllow)
+                .specialAllowance(specialAllowance)
                 .grossSalary(grossSalary)
                 .pf(pf)
                 .esi(esi)
@@ -87,41 +91,30 @@ public class PayrollService {
     }
 
     @Transactional(readOnly = true)
-    public Page<PayrollDTOs.Response> getMyPayroll(Long employeeId, Pageable pageable) {
-        Employee emp = employeeService.findById(employeeId);
-        return payrollRepo.findByEmployee(emp, pageable).map(this::toResponse);
+    public Page<PayrollDTOs.Response> getByEmployee(Long employeeId, Pageable pageable) {
+        Employee employee = employeeService.findById(employeeId);
+        return payrollRepo.findByEmployee(employee, pageable).map(this::toResponse);
     }
 
     @Transactional(readOnly = true)
-    public List<PayrollDTOs.Response> getMonthlyPayroll(int month, int year) {
-        return payrollRepo.findByMonthAndYear(month, year).stream().map(this::toResponse).toList();
+    public java.util.List<PayrollDTOs.Response> getByMonth(int month, int year) {
+        return payrollRepo.findByMonthAndYear(month, year)
+                .stream()
+                .map(this::toResponse)
+                .collect(java.util.stream.Collectors.toList());
     }
 
     @Transactional
     public PayrollDTOs.Response markAsPaid(Long payrollId) {
-        Payroll p = payrollRepo.findById(payrollId)
-                .orElseThrow(() -> new NoSuchElementException("Payroll record not found"));
-        p.setPaid(true);
-        p.setPayDate(LocalDate.now());
-        return toResponse(payrollRepo.save(p));
+        Payroll payroll = payrollRepo.findById(payrollId)
+                .orElseThrow(() -> new NoSuchElementException("Payroll not found: " + payrollId));
+        payroll.setPaid(true);
+        payroll.setPayDate(java.time.LocalDate.now());
+        return toResponse(payrollRepo.save(payroll));
     }
 
-    private BigDecimal calculateProfessionalTax(BigDecimal grossMonthly) {
-        double gross = grossMonthly.doubleValue();
-        if (gross <= 15000) return BigDecimal.ZERO;
-        if (gross <= 20000) return new BigDecimal("150");
-        return new BigDecimal("200");
-    }
-
-    private int countWorkingDays(LocalDate from, LocalDate to) {
-        int days = 0;
-        LocalDate date = from;
-        while (!date.isAfter(to)) {
-            java.time.DayOfWeek dow = date.getDayOfWeek();
-            if (dow != java.time.DayOfWeek.SATURDAY && dow != java.time.DayOfWeek.SUNDAY) days++;
-            date = date.plusDays(1);
-        }
-        return days;
+    private BigDecimal round(BigDecimal value) {
+        return value.setScale(2, RoundingMode.HALF_UP);
     }
 
     private PayrollDTOs.Response toResponse(Payroll p) {

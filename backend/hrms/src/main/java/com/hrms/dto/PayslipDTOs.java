@@ -29,8 +29,9 @@ public class PayslipDTOs {
         private BigDecimal tds;
         private BigDecimal totalDeductions;
         private BigDecimal netSalary;
-        private double presentDays;
+        private int presentDays;
         private int lopDays;
+        private boolean paid;
         private LocalDate payDate;
         private LocalDateTime generatedAt;
     }

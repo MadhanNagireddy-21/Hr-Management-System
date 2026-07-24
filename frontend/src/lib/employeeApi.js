@@ -18,6 +18,12 @@ export const getLeaveBalance = () =>
 export const getMyPayslips = (page = 0, size = 10) =>
   api.get(`/api/payslips/my?page=${page}&size=${size}`);
 
+// Downloads the payslip PDF as a blob (binary), not JSON.
+export const downloadPayslipPdf = (payslipNumber) =>
+  api.get(`/api/payslips/${payslipNumber}/download`, {
+    responseType: 'blob',
+  });
+
 export const getMyNotifications = (page = 0, size = 20) =>
   api.get(`/api/notifications?page=${page}&size=${size}`);
 

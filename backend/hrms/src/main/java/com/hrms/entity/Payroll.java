@@ -9,7 +9,10 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "payroll")
-@Data @NoArgsConstructor @AllArgsConstructor @Builder
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Payroll {
 
     @Id
@@ -20,7 +23,7 @@ public class Payroll {
     @JoinColumn(name = "employee_id", nullable = false)
     private Employee employee;
 
-    private int month;    // 1-12
+    private int month; // 1-12
     private int year;
 
     // Earnings
@@ -28,10 +31,10 @@ public class Payroll {
     private BigDecimal basicSalary;
 
     @Column(precision = 12, scale = 2)
-    private BigDecimal hra;             // House Rent Allowance
+    private BigDecimal hra; // House Rent Allowance
 
     @Column(precision = 12, scale = 2)
-    private BigDecimal da;              // Dearness Allowance
+    private BigDecimal da; // Dearness Allowance
 
     @Column(precision = 12, scale = 2)
     private BigDecimal specialAllowance;
@@ -41,16 +44,16 @@ public class Payroll {
 
     // Deductions
     @Column(precision = 12, scale = 2)
-    private BigDecimal pf;              // Provident Fund (12% of basic)
+    private BigDecimal pf; // Provident Fund (12% of basic)
 
     @Column(precision = 12, scale = 2)
-    private BigDecimal esi;             // ESI (0.75% of gross if <= 21000)
+    private BigDecimal esi; // ESI (0.75% of gross if <= 21000)
 
     @Column(precision = 12, scale = 2)
-    private BigDecimal pt;              // Professional Tax
+    private BigDecimal pt; // Professional Tax
 
     @Column(precision = 12, scale = 2)
-    private BigDecimal tds;             // Tax Deducted at Source
+    private BigDecimal tds; // Tax Deducted at Source
 
     @Column(precision = 12, scale = 2)
     private BigDecimal totalDeductions;
@@ -58,8 +61,8 @@ public class Payroll {
     @Column(precision = 12, scale = 2)
     private BigDecimal netSalary;
 
-    private double presentDays;
-    private int lopDays;                // Loss of Pay
+    private int presentDays;
+    private int lopDays; // Loss of Pay
 
     private boolean paid = false;
     private LocalDate payDate;

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { getMyPayslips } from '@/lib/employeeApi';
+import { getMyPayslips, downloadPayslipPdf } from '@/lib/employeeApi';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
 
@@ -135,6 +135,30 @@ function PayslipListView({ loading, payslips, selected, onSelect, page, totalPag
 }
 
 function PayslipDetailView({ selected, loadingDetail, formatCurrency }) {
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      const res = await downloadPayslipPdf(selected.payslipNumber);
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${selected.payslipNumber}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success('Payslip downloaded');
+    } catch (err) {
+      console.error('Error downloading payslip:', err);
+      toast.error('Failed to download payslip');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   if (loadingDetail) {
     return (
       <div style={{
@@ -297,18 +321,20 @@ function PayslipDetailView({ selected, loadingDetail, formatCurrency }) {
 
         {/* Download Button */}
         <button
-          onClick={() => toast.success('Download feature coming soon!')}
+          onClick={handleDownload}
+          disabled={downloading}
           style={{
             width: '100%', padding: '12px',
             background: '#1e3a5f', color: 'white',
             border: 'none', borderRadius: '10px',
             fontSize: '14px', fontWeight: '700',
-            cursor: 'pointer',
+            cursor: downloading ? 'not-allowed' : 'pointer',
+            opacity: downloading ? 0.7 : 1,
             display: 'flex', alignItems: 'center',
             justifyContent: 'center', gap: '8px',
           }}
         >
-          ⬇ Download Payslip PDF
+          ⬇ {downloading ? 'Downloading...' : 'Download Payslip PDF'}
         </button>
       </div>
     </div>

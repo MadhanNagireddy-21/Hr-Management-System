@@ -22,20 +22,25 @@ const ADMIN_MENU = [
   { key: '/admin/training', label: 'Training', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
   { key: '/admin/recruitment', label: 'Recruitment', icon: 'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
   { key: '/admin/onboarding', label: 'Onboarding', icon: 'M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z' },
+  { key: '/admin/onboarding/greetings', label: 'Send Greeting', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+  { key: '/admin/onboarding/offerletter', label: 'Send Offer Letter', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+  { key: '/admin/onboarding/interview', label: 'Send Interview', icon: 'M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4zm6 0a4 4 0 10-4-4' },
+  { key: '/admin/onboarding/document-request', label: 'Document Request', icon: 'M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h9l5 5v11a2 2 0 01-2 2zm-7-9V7h-2v5H7l5 5 5-5h-3z' },
   { key: '/admin/notifications', label: 'Notifications', icon: 'M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9' },
 ];
+
 function NavIcon({ path }) {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="2"
       strokeLinecap="round" strokeLinejoin="round">
-      <path d={path}/>
+      <path d={path} />
     </svg>
   );
 }
 
 export default function Sidebar({ role }) {
-  const router   = useRouter();
+  const router = useRouter();
   const pathname = usePathname();
   const dispatch = useDispatch();
   const { user } = useSelector((s) => s.auth);
@@ -70,101 +75,101 @@ export default function Sidebar({ role }) {
   return (
     <>
       {isMobileOpen && (
-        <div 
-          className="mobile-overlay" 
+        <div
+          className="mobile-overlay"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
       <div className={`app-sidebar ${isMobileOpen ? 'mobile-open' : ''}`}>
         {/* Logo */}
-      <div style={{
-        padding: '20px 20px 16px',
-        borderBottom: '1px solid rgba(255,255,255,0.08)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '36px', height: '36px',
-            background: '#3b82f6', borderRadius: '10px',
-            display: 'flex', alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '16px', fontWeight: '800', color: 'white',
-          }}>H</div>
-          <div>
-            <div style={{ color: 'white', fontSize: '16px', fontWeight: '800', lineHeight: 1 }}>HRMS</div>
-            <div style={{ color: '#93c5fd', fontSize: '9px', letterSpacing: '1px', marginTop: '2px' }}>HR MANAGEMENT</div>
+        <div style={{
+          padding: '20px 20px 16px',
+          borderBottom: '1px solid rgba(255,255,255,0.08)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <div style={{
+              width: '36px', height: '36px',
+              background: '#3b82f6', borderRadius: '10px',
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '16px', fontWeight: '800', color: 'white',
+            }}>H</div>
+            <div>
+              <div style={{ color: 'white', fontSize: '16px', fontWeight: '800', lineHeight: 1 }}>HRMS</div>
+              <div style={{ color: '#93c5fd', fontSize: '9px', letterSpacing: '1px', marginTop: '2px' }}>HR MANAGEMENT</div>
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Main Menu */}
-      <div style={{ flex: 1, padding: '12px 10px', overflowY: 'auto' }}>
-        {menu.map((item) => (
+        {/* Main Menu */}
+        <div style={{ flex: 1, padding: '12px 10px', overflowY: 'auto' }}>
+          {menu.map((item) => (
+            <div
+              key={item.key}
+              onClick={() => { setIsMobileOpen(false); router.push(item.key); }}
+              style={navItemStyle(item.key)}
+              onMouseEnter={e => {
+                if (pathname !== item.key)
+                  e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+              }}
+              onMouseLeave={e => {
+                if (pathname !== item.key)
+                  e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <NavIcon path={item.icon} />
+              {item.label}
+            </div>
+          ))}
+        </div>
+
+        {/* Bottom — Settings + Logout */}
+        <div style={{ padding: '10px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+
+          {/* Settings */}
           <div
-            key={item.key}
-            onClick={() => { setIsMobileOpen(false); router.push(item.key); }}
-            style={navItemStyle(item.key)}
+            onClick={() => { setIsMobileOpen(false); router.push(settingsRoute); }}
+            style={{
+              ...navItemStyle(settingsRoute),
+              marginBottom: '4px',
+            }}
             onMouseEnter={e => {
-              if (pathname !== item.key)
+              if (pathname !== settingsRoute)
                 e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
             }}
             onMouseLeave={e => {
-              if (pathname !== item.key)
+              if (pathname !== settingsRoute)
                 e.currentTarget.style.background = 'transparent';
             }}
           >
-            <NavIcon path={item.icon}/>
-            {item.label}
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+              <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Settings
           </div>
-        ))}
-      </div>
 
-      {/* Bottom — Settings + Logout */}
-      <div style={{ padding: '10px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
-
-        {/* Settings */}
-        <div
-          onClick={() => { setIsMobileOpen(false); router.push(settingsRoute); }}
-          style={{
-            ...navItemStyle(settingsRoute),
-            marginBottom: '4px',
-          }}
-          onMouseEnter={e => {
-            if (pathname !== settingsRoute)
-              e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
-          }}
-          onMouseLeave={e => {
-            if (pathname !== settingsRoute)
-              e.currentTarget.style.background = 'transparent';
-          }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-            <path d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-          </svg>
-          Settings
-        </div>
-
-        {/* Logout */}
-        <div
-          onClick={handleLogout}
-          style={{
-            display: 'flex', alignItems: 'center', gap: '10px',
-            padding: '10px 12px', borderRadius: '8px',
-            cursor: 'pointer', color: '#fca5a5',
-            fontSize: '13px', transition: 'all 0.15s',
-          }}
-          onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
-          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
-            stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
-          </svg>
-          Logout
+          {/* Logout */}
+          <div
+            onClick={handleLogout}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '10px',
+              padding: '10px 12px', borderRadius: '8px',
+              cursor: 'pointer', color: '#fca5a5',
+              fontSize: '13px', transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.background = 'rgba(239,68,68,0.15)'}
+            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+            Logout
+          </div>
         </div>
       </div>
-    </div>
     </>
   );
 }

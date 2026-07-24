@@ -15,7 +15,9 @@ import java.util.Optional;
 @Repository
 public interface PayrollRepository extends JpaRepository<Payroll, Long> {
     Optional<Payroll> findByEmployeeAndMonthAndYear(Employee employee, int month, int year);
+
     List<Payroll> findByMonthAndYear(int month, int year);
+
     Page<Payroll> findByEmployee(Employee employee, Pageable pageable);
 
     @Query("SELECT SUM(p.netSalary) FROM Payroll p WHERE p.month=:month AND p.year=:year AND p.paid=true")

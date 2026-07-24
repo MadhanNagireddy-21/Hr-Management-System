@@ -1,16 +1,22 @@
 package com.hrms.repository;
 
-import com.hrms.entity.Payslip;
 import com.hrms.entity.Employee;
+import com.hrms.entity.Payslip;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.Query;
+
 import java.util.Optional;
 
-@Repository
 public interface PayslipRepository extends JpaRepository<Payslip, Long> {
-    Page<Payslip> findByEmployee(Employee employee, Pageable pageable);
-    Optional<Payslip> findByPayslipNumber(String payslipNumber);
     boolean existsByPayroll_Id(Long payrollId);
+
+    Page<Payslip> findByEmployee(Employee employee, Pageable pageable);
+
+    @Query("SELECT p FROM Payslip p " +
+            "JOIN FETCH p.employee " +
+            "LEFT JOIN FETCH p.payroll " +
+            "WHERE p.payslipNumber = :payslipNumber")
+    Optional<Payslip> findByPayslipNumber(String payslipNumber);
 }

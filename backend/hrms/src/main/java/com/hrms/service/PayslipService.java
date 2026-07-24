@@ -71,6 +71,12 @@ public class PayslipService {
                 .orElseThrow(() -> new NoSuchElementException("Payslip not found: " + payslipNumber)));
     }
 
+    @Transactional(readOnly = true)
+    public Payslip getEntityByPayslipNumber(String payslipNumber) {
+        return payslipRepo.findByPayslipNumber(payslipNumber)
+                .orElseThrow(() -> new NoSuchElementException("Payslip not found: " + payslipNumber));
+    }
+
     private PayslipDTOs.Response toResponse(Payslip p) {
         PayslipDTOs.Response r = new PayslipDTOs.Response();
         r.setId(p.getId());
@@ -95,7 +101,8 @@ public class PayslipService {
         r.setNetSalary(p.getNetSalary());
         r.setPresentDays(p.getPresentDays());
         r.setLopDays(p.getLopDays());
-        r.setPayDate(p.getPayDate());
+        r.setPaid(p.getPayroll() != null && p.getPayroll().isPaid());
+        r.setPayDate(p.getPayroll() != null ? p.getPayroll().getPayDate() : p.getPayDate());
         r.setGeneratedAt(p.getGeneratedAt());
         return r;
     }
