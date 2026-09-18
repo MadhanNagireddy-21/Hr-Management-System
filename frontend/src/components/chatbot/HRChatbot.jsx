@@ -32,14 +32,15 @@ import {
 } from 'lucide-react';
 
 import './HRChatbot.css';
-import { HttpStatusCode } from 'axios';
 
 // ============================================================
 // API CONFIGURATION
 // ============================================================
 
-const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || 'http:https://hrms.saitejainfotechprivatelimited.com/';
+const API_BASE_URL = (
+    process.env.NEXT_PUBLIC_API_URL ||
+    'https://api.saitejainfotechprivatelimited.com'
+).replace(/\/+$/, '');
 
 // ============================================================
 // QUICK ACTIONS
@@ -827,926 +828,916 @@ export default function HRChatbot() {
             // --------------------------------------------------
 
             const response = await fetch(
-                `https://api.saitejainfotechprivatelimited.com/api/chatbot/message`,
+                `${API_BASE_URL}/api/chatbot/message`,
                 {
                     method: 'POST',
+
                     headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`,
+                        'Content-Type':
+                            'application/json',
+
+                        Accept:
+                            'application/json',
+
+                        Authorization:
+                            `Bearer ${accessToken}`,
                     },
+
                     body: JSON.stringify({
-                        message: userMessage
+                        message: text,
                     }),
                 }
             );
-            
 
-    // --------------------------------------------------
-    // PARSE RESPONSE
-    // --------------------------------------------------
+            // --------------------------------------------------
+            // PARSE RESPONSE
+            // --------------------------------------------------
 
-    let responseData = null;
+            let responseData = null;
 
-    try {
-        responseData =
-            await response.json();
-    } catch {
-        responseData = null;
-    }
+            try {
+                responseData =
+                    await response.json();
+            } catch {
+                responseData = null;
+            }
 
-    // --------------------------------------------------
-    // HTTP ERROR
-    // --------------------------------------------------
+            // --------------------------------------------------
+            // HTTP ERROR
+            // --------------------------------------------------
 
-    if (!response.ok) {
-        const error = new Error(
-            responseData?.message ||
-            responseData?.error ||
-            `Request failed with status ${response.status}`
-        );
+            if (!response.ok) {
+                const error = new Error(
+                    responseData?.message ||
+                    responseData?.error ||
+                    `Request failed with status ${response.status}`
+                );
 
-        error.response = {
-            status: response.status,
-            data: responseData,
-        };
+                error.response = {
+                    status: response.status,
+                    data: responseData,
+                };
 
-        throw error;
-    }
+                throw error;
+            }
 
-    // --------------------------------------------------
-    // FORMAT BACKEND RESPONSE
-    // --------------------------------------------------
+            // --------------------------------------------------
+            // FORMAT BACKEND RESPONSE
+            // --------------------------------------------------
 
-    const backendResponse =
-        getBackendReply({
-            data: responseData,
-        });
+            const backendResponse =
+                getBackendReply({
+                    data: responseData,
+                });
 
-    // --------------------------------------------------
-    // LEAVE DATA
-    // --------------------------------------------------
+            // --------------------------------------------------
+            // LEAVE DATA
+            // --------------------------------------------------
 
-    const leaveBalances =
-        formatLeaveBalances(
-            backendResponse.data
-        );
+            const leaveBalances =
+                formatLeaveBalances(
+                    backendResponse.data
+                );
 
-    // --------------------------------------------------
-    // TRAINING DATA
-    // --------------------------------------------------
+            // --------------------------------------------------
+            // TRAINING DATA
+            // --------------------------------------------------
 
-    const trainings =
-        formatTrainings(
-            backendResponse.data
-        );
+            const trainings =
+                formatTrainings(
+                    backendResponse.data
+                );
 
-    const recruitmentJobs =
-        formatRecruitmentJobs(
-            backendResponse.data
-        );
+            const recruitmentJobs =
+                formatRecruitmentJobs(
+                    backendResponse.data
+                );
 
-    const recruitmentApplications =
-        formatRecruitmentApplications(
-            backendResponse.data
-        );
+            const recruitmentApplications =
+                formatRecruitmentApplications(
+                    backendResponse.data
+                );
 
-    const recruitmentSummary =
-        backendResponse.data?.recruitmentSummary || null;
+            // --------------------------------------------------
+            // DATA TO SEND TO MESSAGE
+            // --------------------------------------------------
 
-    // --------------------------------------------------
-    // DATA TO SEND TO MESSAGE
-    // --------------------------------------------------
+            let messageData =
+                backendResponse.data;
 
-    let messageData =
-        backendResponse.data;
+            if (
+                backendResponse.type ===
+                'leave-balance' &&
+                leaveBalances
+            ) {
+                messageData =
+                    leaveBalances;
+            }
 
-    if (
-        backendResponse.type ===
-        'leave-balance' &&
-        leaveBalances
-    ) {
-        messageData =
-            leaveBalances;
-    }
+            if (
+                backendResponse.type ===
+                'training' &&
+                trainings
+            ) {
+                messageData =
+                    trainings;
+            }
 
-    if (
-        backendResponse.type ===
-        'training' &&
-        trainings
-    ) {
-        messageData =
-            trainings;
-    }
+            if (
+                backendResponse.type ===
+                'recruitment' &&
+                (
+                    recruitmentJobs ||
+                    recruitmentApplications
+                )
+            ) {
+                messageData = {
+                    jobs: recruitmentJobs || [],
+                    recruitmentApplications:
+                        recruitmentApplications || [],
+                };
+            }
 
-    if (
-        backendResponse.type ===
-        'recruitment' &&
-        (
-            recruitmentJobs ||
-            recruitmentApplications ||
-            recruitmentSummary
-        )
-    ) {
-        messageData = {
-            jobs: recruitmentJobs || [],
-            recruitmentApplications:
-                recruitmentApplications || [],
-            recruitmentSummary,
-        };
-    }
+            // --------------------------------------------------
+            // ADD BOT RESPONSE
+            // --------------------------------------------------
 
-    // --------------------------------------------------
-    // ADD BOT RESPONSE
-    // --------------------------------------------------
+            addMessage(
+                'bot',
+                backendResponse.text,
+                backendResponse.type ||
+                'normal',
+                messageData
+            );
+        } catch (error) {
+            console.error(
+                'HR Chatbot API Error:',
+                error
+            );
 
-    addMessage(
-        'bot',
-        backendResponse.text,
-        backendResponse.type ||
-        'normal',
-        messageData
-    );
-} catch (error) {
-    console.error(
-        'HR Chatbot API Error:',
-        error
-    );
-
-    addMessage(
-        'bot',
-        getApiErrorMessage(error),
-        'info',
-        null
-    );
-} finally {
-    setIsTyping(false);
-}
+            addMessage(
+                'bot',
+                getApiErrorMessage(error),
+                'info',
+                null
+            );
+        } finally {
+            setIsTyping(false);
+        }
     };
 
-// ==========================================================
-// ENTER KEY
-// ==========================================================
+    // ==========================================================
+    // ENTER KEY
+    // ==========================================================
 
-const handleKeyDown = (event) => {
-    if (
-        event.key === 'Enter' &&
-        !event.shiftKey
-    ) {
-        event.preventDefault();
-        sendMessage();
-    }
-};
+    const handleKeyDown = (event) => {
+        if (
+            event.key === 'Enter' &&
+            !event.shiftKey
+        ) {
+            event.preventDefault();
+            sendMessage();
+        }
+    };
 
-// ==========================================================
-// CLEAR CHAT
-// ==========================================================
+    // ==========================================================
+    // CLEAR CHAT
+    // ==========================================================
 
-const clearChat = () => {
-    setMessages([
-        {
-            id: `welcome-${Date.now()}`,
-            sender: 'bot',
-            text: getWelcomeText(role),
-            time: new Date(),
-            type: 'welcome',
-            data: null,
-        },
-    ]);
-
-    setIsTyping(false);
-    setMessage('');
-};
-
-// ==========================================================
-// FORMAT TIME
-// ==========================================================
-
-const formatTime = (date) => {
-    try {
-        return new Intl.DateTimeFormat(
-            'en-IN',
+    const clearChat = () => {
+        setMessages([
             {
-                hour: '2-digit',
-                minute: '2-digit',
-            }
-        ).format(new Date(date));
-    } catch {
-        return '';
-    }
-};
+                id: `welcome-${Date.now()}`,
+                sender: 'bot',
+                text: getWelcomeText(role),
+                time: new Date(),
+                type: 'welcome',
+                data: null,
+            },
+        ]);
 
-// ==========================================================
-// RENDER
-// ==========================================================
+        setIsTyping(false);
+        setMessage('');
+    };
 
-return (
-    <>
-        {/* =================================================
+    // ==========================================================
+    // FORMAT TIME
+    // ==========================================================
+
+    const formatTime = (date) => {
+        try {
+            return new Intl.DateTimeFormat(
+                'en-IN',
+                {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                }
+            ).format(new Date(date));
+        } catch {
+            return '';
+        }
+    };
+
+    // ==========================================================
+    // RENDER
+    // ==========================================================
+
+    return (
+        <>
+            {/* =================================================
                 FLOATING CHAT BUTTON
             ================================================== */}
 
-        {!isOpen && (
-            <button
-                type="button"
-                className={`hr-chatbot-launcher ${isDark ? 'dark' : ''
-                    }`}
-                onClick={() => {
-                    setIsOpen(true);
-                    setIsMinimized(false);
-                }}
-                aria-label="Open HR Assistant"
-                title="Ask HR Assistant"
-            >
-                <span className="hr-chatbot-launcher-glow" />
+            {!isOpen && (
+                <button
+                    type="button"
+                    className={`hr-chatbot-launcher ${isDark ? 'dark' : ''
+                        }`}
+                    onClick={() => {
+                        setIsOpen(true);
+                        setIsMinimized(false);
+                    }}
+                    aria-label="Open HR Assistant"
+                    title="Ask HR Assistant"
+                >
+                    <span className="hr-chatbot-launcher-glow" />
 
-                <span className="hr-chatbot-launcher-icon">
-                    <Bot
-                        size={25}
-                        strokeWidth={2.2}
-                    />
-                </span>
+                    <span className="hr-chatbot-launcher-icon">
+                        <Bot
+                            size={25}
+                            strokeWidth={2.2}
+                        />
+                    </span>
 
-                <span className="hr-chatbot-online-dot" />
+                    <span className="hr-chatbot-online-dot" />
 
-                <span className="hr-chatbot-launcher-text">
-                    Ask HR
-                </span>
-            </button>
-        )}
+                    <span className="hr-chatbot-launcher-text">
+                        Ask HR
+                    </span>
+                </button>
+            )}
 
-        {/* =================================================
+            {/* =================================================
                 CHAT WINDOW
             ================================================== */}
 
-        {isOpen && (
-            <div
-                className={`hr-chatbot-wrapper ${isDark ? 'dark' : ''
-                    } ${isMinimized
-                        ? 'minimized'
-                        : ''
-                    }`}
-            >
-                <div className="hr-chatbot-window">
+            {isOpen && (
+                <div
+                    className={`hr-chatbot-wrapper ${isDark ? 'dark' : ''
+                        } ${isMinimized
+                            ? 'minimized'
+                            : ''
+                        }`}
+                >
+                    <div className="hr-chatbot-window">
 
-                    {/* =================================================
+                        {/* =================================================
                             HEADER
                         ================================================== */}
 
-                    <div className="hr-chatbot-header">
+                        <div className="hr-chatbot-header">
 
-                        <div className="hr-chatbot-header-left">
+                            <div className="hr-chatbot-header-left">
 
-                            <div className="hr-chatbot-avatar">
-                                <Bot
-                                    size={22}
-                                    strokeWidth={2.2}
-                                />
+                                <div className="hr-chatbot-avatar">
+                                    <Bot
+                                        size={22}
+                                        strokeWidth={2.2}
+                                    />
 
-                                <span className="hr-chatbot-avatar-status" />
-                            </div>
+                                    <span className="hr-chatbot-avatar-status" />
+                                </div>
 
-                            <div className="hr-chatbot-header-info">
+                                <div className="hr-chatbot-header-info">
 
-                                <div className="hr-chatbot-title-row">
+                                    <div className="hr-chatbot-title-row">
 
-                                    <h3>
-                                        HR Assistant
-                                    </h3>
+                                        <h3>
+                                            HR Assistant
+                                        </h3>
 
-                                    <span className="hr-chatbot-ai-badge">
-                                        <Sparkles
-                                            size={10}
-                                        />
-                                        AI
-                                    </span>
+                                        <span className="hr-chatbot-ai-badge">
+                                            <Sparkles
+                                                size={10}
+                                            />
+                                            AI
+                                        </span>
+
+                                    </div>
+
+                                    <p>
+                                        {role ===
+                                            'ADMIN'
+                                            ? 'Admin Assistant'
+                                            : role ===
+                                                'HR'
+                                                ? 'HR Operations Assistant'
+                                                : 'Employee Assistant'}
+                                    </p>
 
                                 </div>
 
-                                <p>
-                                    {role ===
-                                        'ADMIN'
-                                        ? 'Admin Assistant'
-                                        : role ===
-                                            'HR'
-                                            ? 'HR Operations Assistant'
-                                            : 'Employee Assistant'}
-                                </p>
+                            </div>
+
+                            <div className="hr-chatbot-header-actions">
+
+                                <button
+                                    type="button"
+                                    onClick={
+                                        clearChat
+                                    }
+                                    title="Clear conversation"
+                                    aria-label="Clear conversation"
+                                >
+                                    <RotateCcw
+                                        size={16}
+                                    />
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setIsMinimized(
+                                            (prev) =>
+                                                !prev
+                                        )
+                                    }
+                                    title={
+                                        isMinimized
+                                            ? 'Expand'
+                                            : 'Minimize'
+                                    }
+                                    aria-label={
+                                        isMinimized
+                                            ? 'Expand'
+                                            : 'Minimize'
+                                    }
+                                >
+                                    <Minimize2
+                                        size={16}
+                                    />
+                                </button>
+
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setIsOpen(
+                                            false
+                                        )
+                                    }
+                                    title="Close"
+                                    aria-label="Close chatbot"
+                                >
+                                    <X size={18} />
+                                </button>
 
                             </div>
 
                         </div>
 
-                        <div className="hr-chatbot-header-actions">
+                        {!isMinimized && (
+                            <>
 
-                            <button
-                                type="button"
-                                onClick={
-                                    clearChat
-                                }
-                                title="Clear conversation"
-                                aria-label="Clear conversation"
-                            >
-                                <RotateCcw
-                                    size={16}
-                                />
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setIsMinimized(
-                                        (prev) =>
-                                            !prev
-                                    )
-                                }
-                                title={
-                                    isMinimized
-                                        ? 'Expand'
-                                        : 'Minimize'
-                                }
-                                aria-label={
-                                    isMinimized
-                                        ? 'Expand'
-                                        : 'Minimize'
-                                }
-                            >
-                                <Minimize2
-                                    size={16}
-                                />
-                            </button>
-
-                            <button
-                                type="button"
-                                onClick={() =>
-                                    setIsOpen(
-                                        false
-                                    )
-                                }
-                                title="Close"
-                                aria-label="Close chatbot"
-                            >
-                                <X size={18} />
-                            </button>
-
-                        </div>
-
-                    </div>
-
-                    {!isMinimized && (
-                        <>
-
-                            {/* =================================================
+                                {/* =================================================
                                     SECURITY STRIP
                                 ================================================== */}
 
-                            <div className="hr-chatbot-security-strip">
+                                <div className="hr-chatbot-security-strip">
 
-                                <span className="hr-chatbot-security-icon">
-                                    <Sparkles
-                                        size={13}
-                                    />
-                                </span>
+                                    <span className="hr-chatbot-security-icon">
+                                        <Sparkles
+                                            size={13}
+                                        />
+                                    </span>
 
-                                <span>
-                                    Connected to your HRMS
-                                </span>
+                                    <span>
+                                        Connected to your HRMS
+                                    </span>
 
-                                <span className="hr-chatbot-role-pill">
-                                    {role}
-                                </span>
+                                    <span className="hr-chatbot-role-pill">
+                                        {role}
+                                    </span>
 
-                            </div>
+                                </div>
 
-                            {/* =================================================
+                                {/* =================================================
                                     MESSAGES
                                 ================================================== */}
 
-                            <div className="hr-chatbot-messages">
+                                <div className="hr-chatbot-messages">
 
-                                {messages.map(
-                                    (item) => (
+                                    {messages.map(
+                                        (item) => (
 
-                                        <div
-                                            key={
-                                                item.id
-                                            }
-                                            className={`hr-chatbot-message-row ${item.sender ===
-                                                'user'
-                                                ? 'user'
-                                                : 'bot'
-                                                }`}
-                                        >
+                                            <div
+                                                key={
+                                                    item.id
+                                                }
+                                                className={`hr-chatbot-message-row ${item.sender ===
+                                                    'user'
+                                                    ? 'user'
+                                                    : 'bot'
+                                                    }`}
+                                            >
 
-                                            {/* BOT AVATAR */}
+                                                {/* BOT AVATAR */}
 
-                                            {item.sender ===
-                                                'bot' && (
-                                                    <div className="hr-chatbot-message-avatar">
-                                                        <Bot
-                                                            size={
-                                                                15
-                                                            }
-                                                            strokeWidth={
-                                                                2.3
-                                                            }
-                                                        />
-                                                    </div>
-                                                )}
-
-                                            <div className="hr-chatbot-message-content">
-
-                                                {/* WELCOME NAME */}
-
-                                                {item.type ===
-                                                    'welcome' && (
-                                                        <div className="hr-chatbot-welcome-name">
-                                                            {getGreeting(
-                                                                role,
-                                                                user?.name
-                                                            )}
+                                                {item.sender ===
+                                                    'bot' && (
+                                                        <div className="hr-chatbot-message-avatar">
+                                                            <Bot
+                                                                size={
+                                                                    15
+                                                                }
+                                                                strokeWidth={
+                                                                    2.3
+                                                                }
+                                                            />
                                                         </div>
                                                     )}
 
-                                                {/* MESSAGE */}
+                                                <div className="hr-chatbot-message-content">
 
-                                                <div
-                                                    className={`hr-chatbot-bubble ${item.type ===
-                                                        'info'
-                                                        ? 'info'
-                                                        : ''
-                                                        } ${item.type ===
-                                                            'leave-balance'
-                                                            ? 'leave-balance'
-                                                            : ''
-                                                        } ${item.type ===
-                                                            'training'
-                                                            ? 'training-message'
-                                                            : ''
-                                                        } ${item.type ===
-                                                            'recruitment'
-                                                            ? 'recruitment-message'
-                                                            : ''
-                                                        }`}
-                                                >
-                                                    {item.text}
-                                                </div>
+                                                    {/* WELCOME NAME */}
 
-                                                {/* =================================================
+                                                    {item.type ===
+                                                        'welcome' && (
+                                                            <div className="hr-chatbot-welcome-name">
+                                                                {getGreeting(
+                                                                    role,
+                                                                    user?.name
+                                                                )}
+                                                            </div>
+                                                        )}
+
+                                                    {/* MESSAGE */}
+
+                                                    <div
+                                                        className={`hr-chatbot-bubble ${item.type ===
+                                                            'info'
+                                                            ? 'info'
+                                                            : ''
+                                                            } ${item.type ===
+                                                                'leave-balance'
+                                                                ? 'leave-balance'
+                                                                : ''
+                                                            } ${item.type ===
+                                                                'training'
+                                                                ? 'training-message'
+                                                                : ''
+                                                            } ${item.type ===
+                                                                'recruitment'
+                                                                ? 'recruitment-message'
+                                                                : ''
+                                                            }`}
+                                                    >
+                                                        {item.text}
+                                                    </div>
+
+                                                    {/* =================================================
                                                         LEAVE BALANCE CARDS
                                                     ================================================== */}
 
-                                                {item.type ===
-                                                    'leave-balance' &&
-                                                    Array.isArray(
+                                                    {item.type ===
+                                                        'leave-balance' &&
+                                                        Array.isArray(
+                                                            item.data
+                                                        ) &&
                                                         item.data
-                                                    ) &&
-                                                    item.data
-                                                        .length >
-                                                    0 && (
-                                                        <div className="hr-chatbot-leave-cards">
+                                                            .length >
+                                                        0 && (
+                                                            <div className="hr-chatbot-leave-cards">
 
-                                                            {item.data.map(
-                                                                (
-                                                                    balance,
-                                                                    index
-                                                                ) => (
-                                                                    <div
-                                                                        className="hr-chatbot-leave-card"
-                                                                        key={`${balance.leaveType}-${index}`}
-                                                                    >
+                                                                {item.data.map(
+                                                                    (
+                                                                        balance,
+                                                                        index
+                                                                    ) => (
+                                                                        <div
+                                                                            className="hr-chatbot-leave-card"
+                                                                            key={`${balance.leaveType}-${index}`}
+                                                                        >
 
-                                                                        <div className="hr-chatbot-leave-card-top">
+                                                                            <div className="hr-chatbot-leave-card-top">
 
-                                                                            <span>
-                                                                                {formatLeaveName(
-                                                                                    balance.leaveType
-                                                                                )}
-                                                                            </span>
-
-                                                                            <CalendarDays
-                                                                                size={
-                                                                                    14
-                                                                                }
-                                                                            />
-
-                                                                        </div>
-
-                                                                        <div className="hr-chatbot-leave-card-number">
-
-                                                                            {balance.remaining ===
-                                                                                'Unlimited'
-                                                                                ? '∞'
-                                                                                : formatNumber(
-                                                                                    balance.remaining
-                                                                                )}
-
-                                                                        </div>
-
-                                                                        <div className="hr-chatbot-leave-card-label">
-
-                                                                            {balance.remaining ===
-                                                                                'Unlimited'
-                                                                                ? 'Unlimited'
-                                                                                : 'days remaining'}
-
-                                                                        </div>
-
-                                                                        {balance.remaining !==
-                                                                            'Unlimited' && (
-                                                                                <div className="hr-chatbot-leave-card-meta">
-                                                                                    Used{' '}
-                                                                                    {formatNumber(
-                                                                                        balance.used
-                                                                                    )}{' '}
-                                                                                    of{' '}
-                                                                                    {formatNumber(
-                                                                                        balance.total
+                                                                                <span>
+                                                                                    {formatLeaveName(
+                                                                                        balance.leaveType
                                                                                     )}
-                                                                                </div>
-                                                                            )}
+                                                                                </span>
 
-                                                                    </div>
-                                                                )
-                                                            )}
+                                                                                <CalendarDays
+                                                                                    size={
+                                                                                        14
+                                                                                    }
+                                                                                />
 
-                                                        </div>
-                                                    )}
+                                                                            </div>
 
-                                                {/* =================================================
+                                                                            <div className="hr-chatbot-leave-card-number">
+
+                                                                                {balance.remaining ===
+                                                                                    'Unlimited'
+                                                                                    ? '∞'
+                                                                                    : formatNumber(
+                                                                                        balance.remaining
+                                                                                    )}
+
+                                                                            </div>
+
+                                                                            <div className="hr-chatbot-leave-card-label">
+
+                                                                                {balance.remaining ===
+                                                                                    'Unlimited'
+                                                                                    ? 'Unlimited'
+                                                                                    : 'days remaining'}
+
+                                                                            </div>
+
+                                                                            {balance.remaining !==
+                                                                                'Unlimited' && (
+                                                                                    <div className="hr-chatbot-leave-card-meta">
+                                                                                        Used{' '}
+                                                                                        {formatNumber(
+                                                                                            balance.used
+                                                                                        )}{' '}
+                                                                                        of{' '}
+                                                                                        {formatNumber(
+                                                                                            balance.total
+                                                                                        )}
+                                                                                    </div>
+                                                                                )}
+
+                                                                        </div>
+                                                                    )
+                                                                )}
+
+                                                            </div>
+                                                        )}
+
+                                                    {/* =================================================
                                                         TRAINING CARDS
                                                     ================================================== */}
 
-                                                {item.type ===
-                                                    'training' &&
-                                                    Array.isArray(
+                                                    {item.type ===
+                                                        'training' &&
+                                                        Array.isArray(
+                                                            item.data
+                                                        ) &&
                                                         item.data
-                                                    ) &&
-                                                    item.data
-                                                        .length >
-                                                    0 && (
-                                                        <div className="hr-chatbot-training-cards">
+                                                            .length >
+                                                        0 && (
+                                                            <div className="hr-chatbot-training-cards">
 
-                                                            {item.data.map(
-                                                                (
-                                                                    training,
-                                                                    index
-                                                                ) => (
-                                                                    <TrainingCard
-                                                                        key={
-                                                                            training?.id ||
-                                                                            training?.trainingId ||
-                                                                            `${getTrainingTitle(
+                                                                {item.data.map(
+                                                                    (
+                                                                        training,
+                                                                        index
+                                                                    ) => (
+                                                                        <TrainingCard
+                                                                            key={
+                                                                                training?.id ||
+                                                                                training?.trainingId ||
+                                                                                `${getTrainingTitle(
+                                                                                    training
+                                                                                )}-${index}`
+                                                                            }
+                                                                            training={
                                                                                 training
-                                                                            )}-${index}`
-                                                                        }
-                                                                        training={
-                                                                            training
-                                                                        }
-                                                                    />
-                                                                )
-                                                            )}
+                                                                            }
+                                                                        />
+                                                                    )
+                                                                )}
 
-                                                        </div>
-                                                    )}
+                                                            </div>
+                                                        )}
 
-                                                {/* =================================================
+                                                    {/* =================================================
                                                         NO TRAINING DATA
                                                     ================================================== */}
 
-                                                {item.type ===
-                                                    'training' &&
-                                                    Array.isArray(
+                                                    {item.type ===
+                                                        'training' &&
+                                                        Array.isArray(
+                                                            item.data
+                                                        ) &&
                                                         item.data
-                                                    ) &&
-                                                    item.data
-                                                        .length ===
-                                                    0 && (
-                                                        <div className="hr-chatbot-training-empty">
-                                                            <GraduationCap
-                                                                size={
-                                                                    22
-                                                                }
-                                                            />
+                                                            .length ===
+                                                        0 && (
+                                                            <div className="hr-chatbot-training-empty">
+                                                                <GraduationCap
+                                                                    size={
+                                                                        22
+                                                                    }
+                                                                />
 
-                                                            <div>
-                                                                <strong>
-                                                                    No training records
-                                                                </strong>
+                                                                <div>
+                                                                    <strong>
+                                                                        No training records
+                                                                    </strong>
 
-                                                                <span>
-                                                                    No training information is currently available for you.
-                                                                </span>
+                                                                    <span>
+                                                                        No training information is currently available for you.
+                                                                    </span>
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    )}
+                                                        )}
 
 
-                                                {/* =================================================
-                                                         RECRUITMENT SUMMARY
-                                                     ================================================== */}
-
-                                                {item.type ===
-                                                    'recruitment' &&
-                                                    item.data?.recruitmentSummary && (
-                                                        <RecruitmentSummaryCard
-                                                            summary={item.data.recruitmentSummary}
-                                                        />
-                                                    )}
-
-                                                {/* =================================================
+                                                    {/* =================================================
                                                          RECRUITMENT JOB CARDS
                                                      ================================================== */}
 
-                                                {item.type ===
-                                                    'recruitment' &&
-                                                    Array.isArray(item.data?.jobs) &&
-                                                    item.data.jobs.length > 0 && (
-                                                        <div className="hr-chatbot-recruitment-cards">
-                                                            {item.data.jobs.map((job, index) => (
-                                                                <RecruitmentJobCard
-                                                                    key={job?.id || `${getJobTitle(job)}-${index}`}
-                                                                    job={job}
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                    )}
+                                                    {item.type ===
+                                                        'recruitment' &&
+                                                        Array.isArray(item.data?.jobs) &&
+                                                        item.data.jobs.length > 0 && (
+                                                            <div className="hr-chatbot-recruitment-cards">
+                                                                {item.data.jobs.map((job, index) => (
+                                                                    <RecruitmentJobCard
+                                                                        key={job?.id || `${getJobTitle(job)}-${index}`}
+                                                                        job={job}
+                                                                    />
+                                                                ))}
+                                                            </div>
+                                                        )}
 
-                                                {/* =================================================
+                                                    {/* =================================================
                                                          RECRUITMENT REFERRAL CARDS
                                                      ================================================== */}
 
-                                                {item.type ===
-                                                    'recruitment' &&
-                                                    Array.isArray(item.data?.recruitmentApplications) &&
-                                                    item.data.recruitmentApplications.length > 0 && (
-                                                        <div className="hr-chatbot-referral-cards">
-                                                            {item.data.recruitmentApplications.map((referral, index) => (
-                                                                <RecruitmentReferralCard
-                                                                    key={referral?.id || `${referral?.candidateName || 'referral'}-${index}`}
-                                                                    referral={referral}
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                    )}
-
-                                                {item.type ===
-                                                    'recruitment' &&
-                                                    Array.isArray(item.data?.jobs) &&
-                                                    Array.isArray(item.data?.recruitmentApplications) &&
-                                                    item.data.jobs.length === 0 &&
-                                                    item.data.recruitmentApplications.length === 0 && (
-                                                        <div className="hr-chatbot-recruitment-empty">
-                                                            <BriefcaseBusiness size={22} />
-                                                            <div>
-                                                                <strong>No recruitment records</strong>
-                                                                <span>
-                                                                    No matching job openings or referral information is currently available.
-                                                                </span>
+                                                    {item.type ===
+                                                        'recruitment' &&
+                                                        Array.isArray(item.data?.recruitmentApplications) &&
+                                                        item.data.recruitmentApplications.length > 0 && (
+                                                            <div className="hr-chatbot-referral-cards">
+                                                                {item.data.recruitmentApplications.map((referral, index) => (
+                                                                    <RecruitmentReferralCard
+                                                                        key={referral?.id || `${referral?.candidateName || 'referral'}-${index}`}
+                                                                        referral={referral}
+                                                                    />
+                                                                ))}
                                                             </div>
-                                                        </div>
-                                                    )}
+                                                        )}
 
-                                                <div className="hr-chatbot-message-time">
-                                                    {formatTime(
-                                                        item.time
-                                                    )}
+                                                    {item.type ===
+                                                        'recruitment' &&
+                                                        Array.isArray(item.data?.jobs) &&
+                                                        Array.isArray(item.data?.recruitmentApplications) &&
+                                                        item.data.jobs.length === 0 &&
+                                                        item.data.recruitmentApplications.length === 0 && (
+                                                            <div className="hr-chatbot-recruitment-empty">
+                                                                <BriefcaseBusiness size={22} />
+                                                                <div>
+                                                                    <strong>No recruitment records</strong>
+                                                                    <span>
+                                                                        No matching job openings or referral information is currently available.
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+                                                    <div className="hr-chatbot-message-time">
+                                                        {formatTime(
+                                                            item.time
+                                                        )}
+                                                    </div>
+
                                                 </div>
 
+                                                {/* USER AVATAR */}
+
+                                                {item.sender ===
+                                                    'user' && (
+                                                        <div className="hr-chatbot-user-avatar">
+
+                                                            {user?.name
+                                                                ?.split(
+                                                                    ' '
+                                                                )
+                                                                .map(
+                                                                    (
+                                                                        n
+                                                                    ) =>
+                                                                        n[0]
+                                                                )
+                                                                .join(
+                                                                    ''
+                                                                )
+                                                                .slice(
+                                                                    0,
+                                                                    2
+                                                                )
+                                                                .toUpperCase() || (
+                                                                    <UserRound
+                                                                        size={
+                                                                            15
+                                                                        }
+                                                                    />
+                                                                )}
+
+                                                        </div>
+                                                    )}
+
                                             </div>
+                                        )
+                                    )}
 
-                                            {/* USER AVATAR */}
-
-                                            {item.sender ===
-                                                'user' && (
-                                                    <div className="hr-chatbot-user-avatar">
-
-                                                        {user?.name
-                                                            ?.split(
-                                                                ' '
-                                                            )
-                                                            .map(
-                                                                (
-                                                                    n
-                                                                ) =>
-                                                                    n[0]
-                                                            )
-                                                            .join(
-                                                                ''
-                                                            )
-                                                            .slice(
-                                                                0,
-                                                                2
-                                                            )
-                                                            .toUpperCase() || (
-                                                                <UserRound
-                                                                    size={
-                                                                        15
-                                                                    }
-                                                                />
-                                                            )}
-
-                                                    </div>
-                                                )}
-
-                                        </div>
-                                    )
-                                )}
-
-                                {/* =================================================
+                                    {/* =================================================
                                         TYPING INDICATOR
                                     ================================================== */}
 
-                                {isTyping && (
-                                    <div className="hr-chatbot-message-row bot">
+                                    {isTyping && (
+                                        <div className="hr-chatbot-message-row bot">
 
-                                        <div className="hr-chatbot-message-avatar">
-                                            <Bot
-                                                size={
-                                                    15
-                                                }
-                                                strokeWidth={
-                                                    2.3
-                                                }
-                                            />
-                                        </div>
+                                            <div className="hr-chatbot-message-avatar">
+                                                <Bot
+                                                    size={
+                                                        15
+                                                    }
+                                                    strokeWidth={
+                                                        2.3
+                                                    }
+                                                />
+                                            </div>
 
-                                        <div className="hr-chatbot-typing">
-                                            <span />
-                                            <span />
-                                            <span />
-                                        </div>
-
-                                    </div>
-                                )}
-
-                                <div
-                                    ref={
-                                        messagesEndRef
-                                    }
-                                />
-
-                            </div>
-
-                            {/* =================================================
-                                    QUICK ACTIONS
-                                ================================================== */}
-
-                            {messages.length <=
-                                1 && (
-                                    <div className="hr-chatbot-quick-section">
-
-                                        <div className="hr-chatbot-section-label">
-                                            <span>
-                                                Quick actions
-                                            </span>
-                                        </div>
-
-                                        <div className="hr-chatbot-quick-grid">
-
-                                            {quickActions.map(
-                                                (
-                                                    action
-                                                ) => {
-
-                                                    const Icon =
-                                                        action.icon;
-
-                                                    return (
-                                                        <button
-                                                            type="button"
-                                                            key={
-                                                                action.label
-                                                            }
-                                                            onClick={() =>
-                                                                sendMessage(
-                                                                    action.message
-                                                                )
-                                                            }
-                                                            disabled={
-                                                                isTyping
-                                                            }
-                                                            className="hr-chatbot-quick-card"
-                                                        >
-
-                                                            <span className="hr-chatbot-quick-icon">
-                                                                <Icon
-                                                                    size={
-                                                                        15
-                                                                    }
-                                                                />
-                                                            </span>
-
-                                                            <span>
-                                                                {
-                                                                    action.label
-                                                                }
-                                                            </span>
-
-                                                            <ChevronRight
-                                                                size={
-                                                                    14
-                                                                }
-                                                                className="hr-chatbot-quick-arrow"
-                                                            />
-
-                                                        </button>
-                                                    );
-                                                }
-                                            )}
+                                            <div className="hr-chatbot-typing">
+                                                <span />
+                                                <span />
+                                                <span />
+                                            </div>
 
                                         </div>
+                                    )}
 
-                                    </div>
-                                )}
-
-                            {/* =================================================
-                                    INPUT
-                                ================================================== */}
-
-                            <div className="hr-chatbot-input-area">
-
-                                <div className="hr-chatbot-input-box">
-
-                                    <textarea
+                                    <div
                                         ref={
-                                            inputRef
-                                        }
-                                        value={
-                                            message
-                                        }
-                                        onChange={(
-                                            event
-                                        ) =>
-                                            setMessage(
-                                                event
-                                                    .target
-                                                    .value
-                                            )
-                                        }
-                                        onKeyDown={
-                                            handleKeyDown
-                                        }
-                                        placeholder="Ask anything about HR..."
-                                        rows={1}
-                                        maxLength={
-                                            1000
-                                        }
-                                        disabled={
-                                            isTyping
+                                            messagesEndRef
                                         }
                                     />
 
-                                    <button
-                                        type="button"
-                                        className="hr-chatbot-send-button"
-                                        onClick={() =>
-                                            sendMessage()
-                                        }
-                                        disabled={
-                                            !message.trim() ||
-                                            isTyping
-                                        }
-                                        aria-label="Send message"
-                                        title="Send message"
-                                    >
-                                        <Send
-                                            size={
-                                                17
+                                </div>
+
+                                {/* =================================================
+                                    QUICK ACTIONS
+                                ================================================== */}
+
+                                {messages.length <=
+                                    1 && (
+                                        <div className="hr-chatbot-quick-section">
+
+                                            <div className="hr-chatbot-section-label">
+                                                <span>
+                                                    Quick actions
+                                                </span>
+                                            </div>
+
+                                            <div className="hr-chatbot-quick-grid">
+
+                                                {quickActions.map(
+                                                    (
+                                                        action
+                                                    ) => {
+
+                                                        const Icon =
+                                                            action.icon;
+
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                key={
+                                                                    action.label
+                                                                }
+                                                                onClick={() =>
+                                                                    sendMessage(
+                                                                        action.message
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    isTyping
+                                                                }
+                                                                className="hr-chatbot-quick-card"
+                                                            >
+
+                                                                <span className="hr-chatbot-quick-icon">
+                                                                    <Icon
+                                                                        size={
+                                                                            15
+                                                                        }
+                                                                    />
+                                                                </span>
+
+                                                                <span>
+                                                                    {
+                                                                        action.label
+                                                                    }
+                                                                </span>
+
+                                                                <ChevronRight
+                                                                    size={
+                                                                        14
+                                                                    }
+                                                                    className="hr-chatbot-quick-arrow"
+                                                                />
+
+                                                            </button>
+                                                        );
+                                                    }
+                                                )}
+
+                                            </div>
+
+                                        </div>
+                                    )}
+
+                                {/* =================================================
+                                    INPUT
+                                ================================================== */}
+
+                                <div className="hr-chatbot-input-area">
+
+                                    <div className="hr-chatbot-input-box">
+
+                                        <textarea
+                                            ref={
+                                                inputRef
                                             }
-                                            strokeWidth={
-                                                2.2
+                                            value={
+                                                message
+                                            }
+                                            onChange={(
+                                                event
+                                            ) =>
+                                                setMessage(
+                                                    event
+                                                        .target
+                                                        .value
+                                                )
+                                            }
+                                            onKeyDown={
+                                                handleKeyDown
+                                            }
+                                            placeholder="Ask anything about HR..."
+                                            rows={1}
+                                            maxLength={
+                                                1000
+                                            }
+                                            disabled={
+                                                isTyping
                                             }
                                         />
-                                    </button>
+
+                                        <button
+                                            type="button"
+                                            className="hr-chatbot-send-button"
+                                            onClick={() =>
+                                                sendMessage()
+                                            }
+                                            disabled={
+                                                !message.trim() ||
+                                                isTyping
+                                            }
+                                            aria-label="Send message"
+                                            title="Send message"
+                                        >
+                                            <Send
+                                                size={
+                                                    17
+                                                }
+                                                strokeWidth={
+                                                    2.2
+                                                }
+                                            />
+                                        </button>
+
+                                    </div>
+
+                                    <div className="hr-chatbot-input-footer">
+
+                                        <span>
+                                            Responses are powered by
+                                            your HRMS data
+                                        </span>
+
+                                        <span>
+                                            {
+                                                message.length
+                                            }
+                                            /1000
+                                        </span>
+
+                                    </div>
 
                                 </div>
 
-                                <div className="hr-chatbot-input-footer">
+                            </>
+                        )}
 
-                                    <span>
-                                        Responses are powered by
-                                        your HRMS data
-                                    </span>
-
-                                    <span>
-                                        {
-                                            message.length
-                                        }
-                                        /1000
-                                    </span>
-
-                                </div>
-
-                            </div>
-
-                        </>
-                    )}
-
+                    </div>
                 </div>
-            </div>
-        )}
-    </>
-);
+            )}
+        </>
+    );
 }
 
 // ============================================================
@@ -2141,141 +2132,6 @@ function TrainingCard({ training }) {
                 </a>
             )}
 
-        </div>
-    );
-}
-
-// ============================================================
-// RECRUITMENT SUMMARY HELPERS
-// ============================================================
-
-function formatRecruitmentSummaryDate(value) {
-    if (!value) return 'Today';
-
-    try {
-        const date = new Date(`${value}T00:00:00`);
-        if (Number.isNaN(date.getTime())) return String(value);
-
-        return new Intl.DateTimeFormat('en-IN', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-        }).format(date);
-    } catch {
-        return String(value);
-    }
-}
-
-// ============================================================
-// RECRUITMENT SUMMARY CARD
-// ============================================================
-
-function RecruitmentSummaryCard({ summary }) {
-    if (!summary) return null;
-
-    const primaryMetrics = [
-        { label: 'Total Jobs', value: summary.totalJobs, icon: BriefcaseBusiness, tone: 'blue' },
-        { label: 'Open Positions', value: summary.openPositions, icon: CircleDot, tone: 'green' },
-        { label: 'Applications', value: summary.totalApplications, icon: Users, tone: 'purple' },
-        { label: 'Shortlisted', value: summary.shortlistedCount, icon: CheckCircle2, tone: 'orange' },
-    ];
-
-    const statusMetrics = [
-        ['Draft', summary.draftJobs],
-        ['On Hold', summary.onHoldJobs],
-        ['Closed', summary.closedJobs],
-    ];
-
-    const pipelineMetrics = [
-        ['Applied', summary.appliedCount],
-        ['Shortlisted', summary.shortlistedCount],
-        ['Interviews', summary.interviewScheduledCount],
-        ['Interviewed', summary.interviewedCount],
-        ['Offers Sent', summary.offerSentCount],
-        ['Offers Accepted', summary.offerAcceptedCount],
-        ['Offers Rejected', summary.offerRejectedCount],
-        ['Rejected', summary.rejectedCount],
-        ['Withdrawn', summary.withdrawnCount],
-    ];
-
-    return (
-        <div className="hr-chatbot-recruitment-summary">
-            <div className="hr-chatbot-recruitment-summary-header">
-                <div className="hr-chatbot-recruitment-summary-heading">
-                    <div className="hr-chatbot-recruitment-summary-icon">
-                        <BriefcaseBusiness size={18} />
-                    </div>
-                    <div>
-                        <strong>Recruitment Overview</strong>
-                        <span>Current hiring activity and application pipeline</span>
-                    </div>
-                </div>
-                <div className="hr-chatbot-recruitment-summary-date">
-                    <Calendar size={13} />
-                    {formatRecruitmentSummaryDate(summary.asOfDate)}
-                </div>
-            </div>
-
-            <div className="hr-chatbot-recruitment-summary-primary">
-                {primaryMetrics.map(({ label, value, icon: Icon, tone }) => (
-                    <div className={`hr-chatbot-recruitment-summary-stat tone-${tone}`} key={label}>
-                        <div className="hr-chatbot-recruitment-summary-stat-icon"><Icon size={15} /></div>
-                        <div>
-                            <strong>{formatNumber(value)}</strong>
-                            <span>{label}</span>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            <div className="hr-chatbot-recruitment-summary-section">
-                <div className="hr-chatbot-recruitment-summary-section-title">
-                    <span>Job Status</span>
-                    <span className="hr-chatbot-recruitment-summary-total">{formatNumber(summary.totalJobs)} total</span>
-                </div>
-                <div className="hr-chatbot-recruitment-summary-status-row">
-                    {statusMetrics.map(([label, value]) => (
-                        <div className="hr-chatbot-recruitment-summary-status-item" key={label}>
-                            <span>{label}</span>
-                            <strong>{formatNumber(value)}</strong>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="hr-chatbot-recruitment-summary-section">
-                <div className="hr-chatbot-recruitment-summary-section-title">
-                    <span>Application Pipeline</span>
-                    <span className="hr-chatbot-recruitment-summary-total">{formatNumber(summary.totalApplications)} total</span>
-                </div>
-                <div className="hr-chatbot-recruitment-summary-pipeline">
-                    {pipelineMetrics.map(([label, value]) => (
-                        <div className="hr-chatbot-recruitment-summary-pipeline-item" key={label}>
-                            <span>{label}</span>
-                            <strong>{formatNumber(value)}</strong>
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            <div className="hr-chatbot-recruitment-summary-activity">
-                <div className="hr-chatbot-recruitment-summary-activity-card">
-                    <div className="hr-chatbot-recruitment-summary-activity-icon"><CalendarDays size={15} /></div>
-                    <div>
-                        <span>Upcoming interviews</span>
-                        <strong>{formatNumber(summary.upcomingInterviewsCount)}</strong>
-                        <small>Next 7 days</small>
-                    </div>
-                </div>
-                <div className="hr-chatbot-recruitment-summary-activity-card">
-                    <div className="hr-chatbot-recruitment-summary-activity-icon"><Clock3 size={15} /></div>
-                    <div>
-                        <span>Jobs closing soon</span>
-                        <strong>{formatNumber(summary.jobsClosingSoonCount)}</strong>
-                        <small>Next 7 days</small>
-                    </div>
-                </div>
-            </div>
         </div>
     );
 }
