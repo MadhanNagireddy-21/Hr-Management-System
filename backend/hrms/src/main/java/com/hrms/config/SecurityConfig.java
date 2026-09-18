@@ -44,15 +44,11 @@ public class SecurityConfig {
      *
      * APP_FRONTEND_URL=https://hrms.saitejainfotechprivatelimited.com
      *
-     * Spring maps APP_FRONTEND_URL to:
+     * Spring property:
      *
      * app.frontend.url
      *
-     * The default value allows production if the environment
-     * variable is not explicitly supplied.
-     *
-     * IMPORTANT:
-     * Do NOT put localhost into the production server environment.
+     * Multiple origins can be supplied as comma-separated values.
      */
 
     @Value("${app.frontend.url:https://hrms.saitejainfotechprivatelimited.com}")
@@ -96,12 +92,12 @@ public class SecurityConfig {
     };
 
     // ============================================================
-    // ADMIN / HR ONLY URLS
+    // ADMIN / HR URLS
     // ============================================================
 
     /*
-     * Keep empty if controller/service methods already use
-     * @PreAuthorize / @Secured or equivalent authorization.
+     * Controller methods already use @PreAuthorize.
+     * Therefore this list can remain empty.
      */
 
     private static final String[] ADMIN_HR_URLS = {
@@ -115,7 +111,8 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(
             HttpSecurity http,
             JwtAuthFilter jwtAuthFilter,
-            AuthenticationProvider authenticationProvider) throws Exception {
+            AuthenticationProvider authenticationProvider)
+            throws Exception {
 
         http
 
@@ -163,24 +160,25 @@ public class SecurityConfig {
                         .permitAll()
 
                         // ====================================================
-                        // ADMIN ONLY - DELETE JOB
+                        // RECRUITMENT JOB DELETE
                         // ====================================================
 
                         /*
-                         * HR must NOT be allowed to delete jobs.
+                         * ADMIN / HR are allowed at the security layer.
                          *
-                         * ADMIN -> allowed
-                         * HR -> 403 Forbidden
-                         * EMPLOYEE -> 403 Forbidden
+                         * If you want ADMIN-only deletion, enforce it
+                         * in the controller using:
+                         *
+                         * @PreAuthorize("hasRole('ADMIN')")
                          */
 
                         .requestMatchers(
-        HttpMethod.DELETE,
-        "/api/recruitment/jobs/**")
-.hasAnyRole("ADMIN", "HR")
+                                HttpMethod.DELETE,
+                                "/api/recruitment/jobs/**")
+                        .hasAnyRole("ADMIN", "HR")
 
                         // ====================================================
-                        // ADMIN / HR ENDPOINTS
+                        // ADMIN / HR
                         // ====================================================
 
                         .requestMatchers(ADMIN_HR_URLS)
@@ -212,6 +210,19 @@ public class SecurityConfig {
 
                         .requestMatchers(
                                 "/api/attendance/my/**")
+                        .authenticated()
+
+                        // ====================================================
+                        // CHATBOT
+                        // ====================================================
+
+                        /*
+                         * The chatbot requires the logged-in employee/JWT.
+                         * Do NOT make this endpoint public.
+                         */
+
+                        .requestMatchers(
+                                "/api/chatbot/**")
                         .authenticated()
 
                         // ====================================================
@@ -315,31 +326,41 @@ public class SecurityConfig {
         CorsConfiguration config =
                 new CorsConfiguration();
 
-        // --------------------------------------------------------
-        // Allowed frontend origins
-        // --------------------------------------------------------
+        // ========================================================
+        // ALLOWED ORIGINS
+        // ========================================================
 
         /*
-         * Production:
+         * IMPORTANT:
          *
-         * https://hrms.saitejainfotechprivatelimited.com
-         *
-         * Multiple origins can also be supplied as comma-separated
-         * values through app.frontend.url.
+         * allowedOriginPatterns is used instead of
+         * allowedOrigins so production origin handling is
+         * more tolerant.
          */
 
         List<String> allowedOrigins =
                 Arrays.stream(frontendUrl.split(","))
                         .map(String::trim)
                         .filter(origin -> !origin.isBlank())
+                        .map(origin -> {
+
+                            // Remove trailing slash
+                            while (origin.endsWith("/")) {
+                                origin = origin.substring(
+                                        0,
+                                        origin.length() - 1);
+                            }
+
+                            return origin;
+                        })
                         .toList();
 
-        config.setAllowedOrigins(
+        config.setAllowedOriginPatterns(
                 allowedOrigins);
 
-        // --------------------------------------------------------
-        // Allowed HTTP methods
-        // --------------------------------------------------------
+        // ========================================================
+        // HTTP METHODS
+        // ========================================================
 
         config.setAllowedMethods(
                 List.of(
@@ -351,9 +372,9 @@ public class SecurityConfig {
                         "OPTIONS"
                 ));
 
-        // --------------------------------------------------------
-        // Allowed request headers
-        // --------------------------------------------------------
+        // ========================================================
+        // REQUEST HEADERS
+        // ========================================================
 
         config.setAllowedHeaders(
                 List.of(
@@ -363,33 +384,34 @@ public class SecurityConfig {
                         "Cache-Control",
                         "Pragma",
                         "Expires",
-                        "X-Requested-With"
+                        "X-Requested-With",
+                        "Origin"
                 ));
 
-        // --------------------------------------------------------
-        // Exposed response headers
-        // --------------------------------------------------------
+        // ========================================================
+        // RESPONSE HEADERS
+        // ========================================================
 
         config.setExposedHeaders(
                 List.of(
                         "Authorization"
                 ));
 
-        // --------------------------------------------------------
-        // Credentials
-        // --------------------------------------------------------
+        // ========================================================
+        // CREDENTIALS
+        // ========================================================
 
         config.setAllowCredentials(true);
 
-        // --------------------------------------------------------
-        // Browser preflight cache
-        // --------------------------------------------------------
+        // ========================================================
+        // PREFLIGHT CACHE
+        // ========================================================
 
         config.setMaxAge(3600L);
 
-        // --------------------------------------------------------
-        // Register CORS configuration
-        // --------------------------------------------------------
+        // ========================================================
+        // REGISTER CORS
+        // ========================================================
 
         UrlBasedCorsConfigurationSource source =
                 new UrlBasedCorsConfigurationSource();
