@@ -24,38 +24,28 @@ import {
     BookOpen,
     Calendar,
     Clock,
+    MapPin,
+    Award,
+    CheckCircle2,
+    ExternalLink,
+    CircleDot,
 } from 'lucide-react';
 
 import './HRChatbot.css';
 
-/* ============================================================
-   API CONFIGURATION
-   ============================================================
+// ============================================================
+// API CONFIGURATION
+// ============================================================
 
-   Backend and frontend are on the same live domain:
-
-   https://hrms.saitejainfotechprivatelimited.com
-
-   Therefore we use a relative URL by default.
-
-   This means the request becomes:
-
-   /api/chatbot/message
-
-   which the live server should forward to Spring Boot.
-
-   If you ever need another API URL, you can set:
-
-   NEXT_PUBLIC_API_URL
-
-   ============================================================ */
-
+// Production backend and frontend use the same domain.
+// Keep this as the HRMS live domain so the chatbot does not call
+// the old api.saitejainfotechprivatelimited.com host.
 const API_BASE_URL =
-    process.env.NEXT_PUBLIC_API_URL || '';
+    'https://hrms.saitejainfotechprivatelimited.com';
 
-/* ============================================================
-   QUICK ACTIONS
-   ============================================================ */
+// ============================================================
+// QUICK ACTIONS
+// ============================================================
 
 const QUICK_ACTIONS = {
     EMPLOYEE: [
@@ -133,56 +123,52 @@ const QUICK_ACTIONS = {
     ],
 };
 
-/* ============================================================
-   ROLE
-   ============================================================ */
+// ============================================================
+// ROLE
+// ============================================================
 
 function getRole(user) {
-    const role = String(
-        user?.role ||
-        user?.userRole ||
-        user?.roles?.[0] ||
-        'EMPLOYEE'
-    ).toUpperCase();
+    const role = String(user?.role || 'EMPLOYEE').toUpperCase();
 
-    if (role.includes('ADMIN')) {
-        return 'ADMIN';
-    }
-
-    if (role.includes('HR')) {
-        return 'HR';
-    }
+    if (role === 'ADMIN') return 'ADMIN';
+    if (role === 'HR') return 'HR';
 
     return 'EMPLOYEE';
 }
 
-/* ============================================================
-   FIRST NAME
-   ============================================================ */
+// ============================================================
+// FIRST NAME
+// ============================================================
 
 function getFirstName(name) {
-    if (!name) {
-        return 'there';
-    }
+    if (!name) return 'there';
 
     return String(name)
         .trim()
         .split(/\s+/)[0];
 }
 
-/* ============================================================
-   GREETING
-   ============================================================ */
+// ============================================================
+// GREETING
+// ============================================================
 
 function getGreeting(role, name) {
     const firstName = getFirstName(name);
 
+    if (role === 'ADMIN') {
+        return `Hello ${firstName} 👋`;
+    }
+
+    if (role === 'HR') {
+        return `Hello ${firstName} 👋`;
+    }
+
     return `Hello ${firstName} 👋`;
 }
 
-/* ============================================================
-   WELCOME TEXT
-   ============================================================ */
+// ============================================================
+// WELCOME TEXT
+// ============================================================
 
 function getWelcomeText(role) {
     if (role === 'ADMIN') {
@@ -196,42 +182,42 @@ function getWelcomeText(role) {
     return 'I’m your HRMS AI Assistant. I can help you with your leave, attendance, payslip, training and HRMS information.';
 }
 
-/* ============================================================
-   BACKEND RESPONSE FORMATTER
-   ============================================================ */
+// ============================================================
+// BACKEND RESPONSE FORMATTER
+// ============================================================
 
 function getBackendReply(response) {
-    const root = response?.data;
+    /*
+     * Expected backend response:
+     *
+     * {
+     *   success: true,
+     *   message: "...",
+     *   data: {
+     *      reply: "...",
+     *      intent: "...",
+     *      type: "...",
+     *      leaveBalances: [],
+     *      trainings: []
+     *   }
+     * }
+     */
 
-    const data =
-        root?.data &&
-        typeof root.data === 'object'
-            ? root.data
-            : root;
+    const data = response?.data?.data;
 
     if (typeof data?.reply === 'string') {
-        const backendType = String(
-            data?.type || ''
-        ).toUpperCase();
+        const backendType = String(data?.type || '').toUpperCase();
 
         let type = 'normal';
 
-        if (
-            backendType.includes('LEAVE') ||
-            Array.isArray(data?.leaveBalances) ||
-            Array.isArray(data?.balances)
-        ) {
+        if (backendType === 'LEAVE_BALANCE') {
             type = 'leave-balance';
-        }
-
-        if (
+        } else if (
             backendType.includes('TRAINING') ||
             Array.isArray(data?.trainings)
         ) {
             type = 'training';
-        }
-
-        if (
+        } else if (
             backendType.includes('RECRUITMENT') ||
             backendType.includes('JOB') ||
             backendType.includes('REFERRAL') ||
@@ -241,18 +227,6 @@ function getBackendReply(response) {
             type = 'recruitment';
         }
 
-        if (
-            backendType.includes('ATTENDANCE') ||
-            data?.attendance ||
-            data?.attendanceRecord ||
-            data?.monthlyStats ||
-            data?.attendanceStats ||
-            Array.isArray(data?.monthlyRecords) ||
-            Array.isArray(data?.weeklyRecords)
-        ) {
-            type = 'attendance';
-        }
-
         return {
             text: data.reply,
             type,
@@ -260,2184 +234,2179 @@ function getBackendReply(response) {
         };
     }
 
-    if (typeof root?.reply === 'string') {
-        return {
-            text: root.reply,
-            type: 'normal',
-            data: root,
-        };
-    }
+    // Fallback if backend returns a slightly different structure
+    if (typeof response?.data?.reply === 'string') {
+        const backendType = String(
+            response?.data?.type || ''
+        ).toUpperCase();
 
-    if (typeof root?.message === 'string') {
-        return {
-            text: root.message,
-            type: 'normal',
-            data: root,
-        };
-    }
+        let type = 'normal';
 
-    if (typeof root === 'string') {
+        if (
+            backendType.includes('TRAINING') ||
+            Array.isArray(response?.data?.trainings)
+        ) {
+            type = 'training';
+        } else if (
+            backendType.includes('RECRUITMENT') ||
+            backendType.includes('JOB') ||
+            backendType.includes('REFERRAL') ||
+            Array.isArray(response?.data?.jobs) ||
+            Array.isArray(response?.data?.recruitmentApplications)
+        ) {
+            type = 'recruitment';
+        }
+
         return {
-            text: root,
-            type: 'normal',
-            data: {},
+            text: response.data.reply,
+            type,
+            data: response.data,
         };
     }
 
     return {
-        text:
-            'I received a response from the HRMS server, but I could not understand the response format.',
-        type: 'normal',
-        data: root || {},
+        text: 'I received a response from the HRMS server, but I could not read the response correctly.',
+        type: 'info',
+        data: null,
     };
 }
 
-/* ============================================================
-   TEXT FORMATTER
-   ============================================================ */
+// ============================================================
+// API ERROR MESSAGE
+// ============================================================
 
-function formatText(text) {
-    if (
-        text === null ||
-        text === undefined
-    ) {
-        return '';
+function getApiErrorMessage(error) {
+    const status = error?.response?.status;
+
+    if (status === 401) {
+        return 'Your HRMS session has expired. Please log in again and try again.';
     }
 
-    return String(text);
+    if (status === 403) {
+        return 'You do not have permission to access this HRMS information.';
+    }
+
+    if (status === 404) {
+        return 'The HR Assistant service could not be found. Please check that the backend is running.';
+    }
+
+    if (status >= 500) {
+        return 'The HRMS server encountered an error while processing your request. Please try again.';
+    }
+
+    if (error?.code === 'ERR_NETWORK') {
+        return 'I could not connect to the HRMS server. Please make sure the backend is running.';
+    }
+
+    return (
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        'Something went wrong while contacting the HR Assistant. Please try again.'
+    );
 }
 
-/* ============================================================
-   DATE FORMATTER
-   ============================================================ */
+// ============================================================
+// FORMAT LEAVE BALANCE DATA
+// ============================================================
 
-function formatDate(value) {
-    if (!value) {
-        return '';
+function formatLeaveBalances(data) {
+    if (!data?.leaveBalances?.length) {
+        return null;
     }
 
+    return data.leaveBalances;
+}
+
+// ============================================================
+// FORMAT TRAINING DATA
+// ============================================================
+
+function formatTrainings(data) {
+    if (!Array.isArray(data?.trainings)) {
+        return null;
+    }
+
+    return data.trainings;
+}
+
+// ============================================================
+// RECRUITMENT DATA
+// ============================================================
+
+function formatRecruitmentJobs(data) {
+    return Array.isArray(data?.jobs) ? data.jobs : null;
+}
+
+function formatRecruitmentApplications(data) {
+    return Array.isArray(data?.recruitmentApplications)
+        ? data.recruitmentApplications
+        : null;
+}
+
+function formatEmploymentType(value) {
+    if (!value) return 'Not specified';
+    return String(value)
+        .replace(/_/g, ' ')
+        .replace(/-/g, ' ')
+        .toLowerCase()
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatPostingStatus(value) {
+    if (!value) return 'Open';
+    return String(value)
+        .replace(/_/g, ' ')
+        .replace(/-/g, ' ')
+        .toLowerCase()
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatApplicationStatus(value) {
+    if (!value) return 'Applied';
+    return String(value)
+        .replace(/_/g, ' ')
+        .replace(/-/g, ' ')
+        .toLowerCase()
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatExperience(years, months) {
+    const y = years !== null && years !== undefined && years !== ''
+        ? Number(years) : null;
+    const m = months !== null && months !== undefined && months !== ''
+        ? Number(months) : null;
+
+    if (y === null && m === null) return 'Not specified';
+
+    const parts = [];
+    if (y !== null && !Number.isNaN(y) && y > 0) {
+        parts.push(`${y} ${y === 1 ? 'year' : 'years'}`);
+    }
+    if (m !== null && !Number.isNaN(m) && m > 0) {
+        parts.push(`${m} ${m === 1 ? 'month' : 'months'}`);
+    }
+    return parts.length ? parts.join(' ') : 'Fresher';
+}
+
+function formatDateTime(value) {
+    if (!value) return 'Not specified';
     try {
-        const date = new Date(value);
-
-        if (Number.isNaN(date.getTime())) {
-            return String(value);
-        }
-
-        return date.toLocaleDateString('en-IN', {
+        return new Intl.DateTimeFormat('en-IN', {
             day: '2-digit',
             month: 'short',
             year: 'numeric',
-        });
+            hour: '2-digit',
+            minute: '2-digit',
+        }).format(new Date(value));
     } catch {
         return String(value);
     }
 }
 
-/* ============================================================
-   TIME FORMATTER
-   ============================================================ */
+function getJobTitle(job) {
+    return job?.title || job?.jobTitle || 'Job Opening';
+}
 
-function formatTime(value) {
-    if (!value) {
-        return '';
+function getJobStatus(job) {
+    return String(job?.status || job?.postingStatus || 'OPEN').toUpperCase();
+}
+
+// ============================================================
+// TRAINING STATUS
+// ============================================================
+
+function getTrainingStatus(training) {
+    const explicitStatus = String(
+        training?.status ||
+        training?.trainingStatus ||
+        training?.enrollmentStatus ||
+        ''
+    ).toUpperCase();
+
+    if (
+        explicitStatus === 'CANCELLED' ||
+        explicitStatus === 'CANCELED'
+    ) {
+        return 'CANCELLED';
     }
 
-    const stringValue = String(value);
+    if (
+        explicitStatus === 'COMPLETED' ||
+        training?.completed === true ||
+        training?.completionStatus === 'COMPLETED'
+    ) {
+        return 'COMPLETED';
+    }
 
-    if (/^\d{1,2}:\d{2}/.test(stringValue)) {
-        const parts = stringValue.split(':');
+    if (
+        explicitStatus === 'ONGOING' ||
+        explicitStatus === 'IN_PROGRESS' ||
+        explicitStatus === 'INPROGRESS'
+    ) {
+        return 'ONGOING';
+    }
 
-        const hour = Number(parts[0]);
-        const minute = Number(parts[1]);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-        if (
-            Number.isFinite(hour) &&
-            Number.isFinite(minute)
-        ) {
-            const date = new Date();
+    const start = parseDateOnly(training?.startDate);
+    const end = parseDateOnly(training?.endDate);
 
-            date.setHours(hour);
-            date.setMinutes(minute);
-            date.setSeconds(0);
+    if (start && today < start) {
+        return 'UPCOMING';
+    }
 
-            return date.toLocaleTimeString('en-IN', {
-                hour: '2-digit',
-                minute: '2-digit',
-            });
+    if (start && end && today >= start && today <= end) {
+        return 'ONGOING';
+    }
+
+    if (end && today > end) {
+        return 'COMPLETED';
+    }
+
+    return explicitStatus || 'UPCOMING';
+}
+
+// ============================================================
+// DATE PARSER
+// ============================================================
+
+function parseDateOnly(value) {
+    if (!value) return null;
+
+    const text = String(value);
+
+    const match = text.match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+    if (match) {
+        const year = Number(match[1]);
+        const month = Number(match[2]) - 1;
+        const day = Number(match[3]);
+
+        const date = new Date(year, month, day);
+
+        if (!Number.isNaN(date.getTime())) {
+            date.setHours(0, 0, 0, 0);
+            return date;
         }
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+
+    date.setHours(0, 0, 0, 0);
+
+    return date;
+}
+
+// ============================================================
+// FORMAT DATE
+// ============================================================
+
+function formatDate(value) {
+    if (!value) return 'Not specified';
+
+    const date = parseDateOnly(value);
+
+    if (!date) {
+        return String(value);
     }
 
     try {
-        const date = new Date(value);
-
-        if (!Number.isNaN(date.getTime())) {
-            return date.toLocaleTimeString('en-IN', {
-                hour: '2-digit',
-                minute: '2-digit',
-            });
-        }
+        return new Intl.DateTimeFormat('en-IN', {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric',
+        }).format(date);
     } catch {
-        // Ignore invalid date
-    }
-
-    return stringValue;
-}
-
-/* ============================================================
-   NUMBER FORMATTER
-   ============================================================ */
-
-function formatNumber(value, decimals = 2) {
-    if (
-        value === null ||
-        value === undefined ||
-        value === ''
-    ) {
-        return '0';
-    }
-
-    const number = Number(value);
-
-    if (!Number.isFinite(number)) {
         return String(value);
     }
-
-    return number.toFixed(decimals);
 }
 
-/* ============================================================
-   STATUS CLASS
-   ============================================================ */
+// ============================================================
+// FORMAT TRAINING MODE
+// ============================================================
 
-function getStatusClass(status) {
-    const normalized = String(
-        status || ''
-    ).toUpperCase();
+function formatTrainingMode(mode) {
+    if (!mode) return 'Not specified';
 
-    if (normalized.includes('PRESENT')) {
-        return 'status-present';
-    }
-
-    if (normalized.includes('ABSENT')) {
-        return 'status-absent';
-    }
-
-    if (
-        normalized.includes('HALF') ||
-        normalized.includes('PARTIAL')
-    ) {
-        return 'status-half';
-    }
-
-    if (
-        normalized.includes('LEAVE') ||
-        normalized.includes('APPROVED')
-    ) {
-        return 'status-leave';
-    }
-
-    if (
-        normalized.includes('PENDING') ||
-        normalized.includes('OPEN')
-    ) {
-        return 'status-pending';
-    }
-
-    if (
-        normalized.includes('REJECT') ||
-        normalized.includes('CANCEL')
-    ) {
-        return 'status-rejected';
-    }
-
-    return 'status-default';
+    return String(mode)
+        .replace(/_/g, ' ')
+        .replace(/-/g, ' ')
+        .toLowerCase()
+        .replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-/* ============================================================
-   DISPLAY STATUS
-   ============================================================ */
+// ============================================================
+// FORMAT TRAINING CATEGORY
+// ============================================================
 
-function displayStatus(status) {
-    if (!status) {
-        return 'N/A';
+function formatTrainingCategory(category) {
+    if (!category) return 'Training';
+
+    return String(category)
+        .replace(/_/g, ' ')
+        .replace(/-/g, ' ')
+        .toLowerCase()
+        .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+// ============================================================
+// FORMAT TRAINING STATUS LABEL
+// ============================================================
+
+function formatTrainingStatus(status) {
+    if (!status) return 'Upcoming';
+
+    switch (String(status).toUpperCase()) {
+        case 'ONGOING':
+            return 'Ongoing';
+
+        case 'COMPLETED':
+            return 'Completed';
+
+        case 'CANCELLED':
+        case 'CANCELED':
+            return 'Cancelled';
+
+        case 'ENROLLED':
+            return 'Enrolled';
+
+        case 'UPCOMING':
+            return 'Upcoming';
+
+        case 'IN_PROGRESS':
+        case 'INPROGRESS':
+            return 'In Progress';
+
+        default:
+            return String(status)
+                .replace(/_/g, ' ')
+                .replace(/-/g, ' ')
+                .toLowerCase()
+                .replace(/\b\w/g, (char) => char.toUpperCase());
+    }
+}
+
+// ============================================================
+// FORMAT SCORE
+// ============================================================
+
+function formatScore(training) {
+    const score =
+        training?.score ??
+        training?.trainingScore ??
+        training?.assessmentScore ??
+        training?.marks;
+
+    if (
+        score === null ||
+        score === undefined ||
+        score === ''
+    ) {
+        return null;
     }
 
-    return String(status)
-        .replaceAll('_', ' ')
-        .replace(/\b\w/g, (letter) =>
-            letter.toUpperCase()
-        );
+    return String(score);
 }
 
-/* ============================================================
-   MESSAGE ID
-   ============================================================ */
+// ============================================================
+// GET TRAINING TITLE
+// ============================================================
 
-function createMessageId(prefix = 'msg') {
-    return `${prefix}-${Date.now()}-${Math.random()
-        .toString(36)
-        .slice(2, 10)}`;
+function getTrainingTitle(training) {
+    return (
+        training?.title ||
+        training?.trainingTitle ||
+        training?.name ||
+        'Training Program'
+    );
 }
 
-/* ============================================================
-   MAIN COMPONENT
-   ============================================================ */
+// ============================================================
+// GET TRAINER
+// ============================================================
+
+function getTrainer(training) {
+    return (
+        training?.trainer ||
+        training?.trainerName ||
+        training?.instructor ||
+        training?.instructorName ||
+        'Not specified'
+    );
+}
+
+// ============================================================
+// GET ENROLLMENT STATUS
+// ============================================================
+
+function getEnrollmentStatus(training) {
+    return (
+        training?.enrollmentStatus ||
+        training?.enrollment?.status ||
+        training?.status ||
+        null
+    );
+}
+
+// ============================================================
+// GET TRAINING LINK
+// ============================================================
+
+function getTrainingLink(training) {
+    return (
+        training?.meetingLink ||
+        training?.trainingLink ||
+        training?.link ||
+        training?.url ||
+        null
+    );
+}
+
+// ============================================================
+// MAIN COMPONENT
+// ============================================================
 
 export default function HRChatbot() {
-    const user = useSelector(
-        (state) =>
-            state?.auth?.user ||
-            state?.user?.user ||
-            state?.auth?.employee ||
-            null
-    );
-
+    const { user } = useSelector((state) => state.auth);
     const { resolvedTheme } = useTheme();
 
-    const [open, setOpen] = useState(false);
+    const role = getRole(user);
+    const isDark = resolvedTheme === 'dark';
 
-    const [minimized, setMinimized] =
-        useState(false);
+    const [isOpen, setIsOpen] = useState(false);
+    const [isMinimized, setIsMinimized] = useState(false);
+    const [message, setMessage] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
 
-    const [input, setInput] = useState('');
-
-    const [messages, setMessages] =
-        useState([]);
-
-    const [loading, setLoading] =
-        useState(false);
-
-    const [error, setError] =
-        useState('');
-
-    const [role, setRole] =
-        useState(getRole(user));
-
-    const messagesEndRef =
-        useRef(null);
-
-    const inputRef =
-        useRef(null);
-
-    /* ========================================================
-       USER INFORMATION
-       ======================================================== */
-
-    const userName =
-        user?.name ||
-        user?.fullName ||
-        user?.employeeName ||
-        user?.username ||
-        user?.firstName ||
-        'there';
-
-    /* ========================================================
-       ROLE UPDATE
-       ======================================================== */
-
-    useEffect(() => {
-        setRole(getRole(user));
-    }, [user]);
-
-    /* ========================================================
-       INITIAL MESSAGE
-       ======================================================== */
-
-    useEffect(() => {
-        if (!open) {
-            return;
-        }
-
-        if (messages.length === 0) {
-            setMessages([
-                {
-                    id: createMessageId('welcome'),
-                    sender: 'bot',
-                    text: getGreeting(
-                        role,
-                        userName
-                    ),
-                    type: 'greeting',
-                    createdAt: new Date(),
-                },
-                {
-                    id: createMessageId('welcome'),
-                    sender: 'bot',
-                    text: getWelcomeText(role),
-                    type: 'normal',
-                    createdAt: new Date(),
-                },
-            ]);
-        }
-    }, [
-        open,
-        role,
-        userName,
-        messages.length,
+    const [messages, setMessages] = useState(() => [
+        {
+            id: 'welcome',
+            sender: 'bot',
+            text: getWelcomeText(role),
+            time: new Date(),
+            type: 'welcome',
+            data: null,
+        },
     ]);
 
-    /* ========================================================
-       SCROLL TO BOTTOM
-       ======================================================== */
+    const messagesEndRef = useRef(null);
+    const inputRef = useRef(null);
+
+    const quickActions =
+        QUICK_ACTIONS[role] || QUICK_ACTIONS.EMPLOYEE;
+
+    // ==========================================================
+    // AUTO SCROLL
+    // ==========================================================
 
     useEffect(() => {
-        if (!open) {
-            return;
-        }
+        if (!isOpen || isMinimized) return;
 
         messagesEndRef.current?.scrollIntoView({
             behavior: 'smooth',
         });
     }, [
         messages,
-        loading,
-        open,
+        isTyping,
+        isOpen,
+        isMinimized,
     ]);
 
-    /* ========================================================
-       FOCUS INPUT
-       ======================================================== */
+    // ==========================================================
+    // INPUT FOCUS
+    // ==========================================================
 
     useEffect(() => {
-        if (
-            !open ||
-            minimized
-        ) {
-            return;
-        }
-
-        const timeout =
+        if (isOpen && !isMinimized) {
             setTimeout(() => {
                 inputRef.current?.focus();
             }, 150);
-
-        return () =>
-            clearTimeout(timeout);
+        }
     }, [
-        open,
-        minimized,
+        isOpen,
+        isMinimized,
     ]);
 
-    /* ========================================================
-       THEME
-       ======================================================== */
+    // ==========================================================
+    // ROLE CHANGE
+    // ==========================================================
 
-    const themeClass =
-        resolvedTheme === 'dark'
-            ? 'hr-chatbot-dark'
-            : 'hr-chatbot-light';
-
-    /* ========================================================
-       RESET CHAT
-       ======================================================== */
-
-    const resetChat = () => {
+    useEffect(() => {
         setMessages([
             {
-                id: createMessageId('welcome'),
-                sender: 'bot',
-                text: getGreeting(
-                    role,
-                    userName
-                ),
-                type: 'greeting',
-                createdAt: new Date(),
-            },
-            {
-                id: createMessageId('welcome'),
+                id: `welcome-${Date.now()}`,
                 sender: 'bot',
                 text: getWelcomeText(role),
-                type: 'normal',
-                createdAt: new Date(),
+                time: new Date(),
+                type: 'welcome',
+                data: null,
+            },
+        ]);
+    }, [role]);
+
+    // ==========================================================
+    // ADD MESSAGE
+    // ==========================================================
+
+    const addMessage = (
+        sender,
+        text,
+        type = 'normal',
+        data = null
+    ) => {
+        setMessages((prev) => [
+            ...prev,
+            {
+                id: `${sender}-${Date.now()}-${Math.random()}`,
+                sender,
+                text,
+                time: new Date(),
+                type,
+                data,
+            },
+        ]);
+    };
+
+    // ==========================================================
+    // SEND MESSAGE
+    // ==========================================================
+
+    const sendMessage = async (customMessage = null) => {
+        const text = String(
+            customMessage !== null
+                ? customMessage
+                : message
+        ).trim();
+
+        if (!text || isTyping) return;
+
+        // Add user message
+        addMessage(
+            'user',
+            text,
+            'normal',
+            null
+        );
+
+        setMessage('');
+        setIsTyping(true);
+
+        try {
+            // --------------------------------------------------
+            // ACCESS TOKEN
+            // --------------------------------------------------
+
+            const accessToken =
+                typeof window !== 'undefined'
+                    ? sessionStorage.getItem(
+                        'accessToken'
+                    )
+                    : null;
+
+            if (!accessToken) {
+                const error = new Error(
+                    'No active HRMS session was found.'
+                );
+
+                error.response = {
+                    status: 401,
+                    data: {
+                        message:
+                            'No active HRMS session was found.',
+                    },
+                };
+
+                throw error;
+            }
+
+            // --------------------------------------------------
+            // CALL BACKEND
+            // --------------------------------------------------
+
+            const response = await fetch(
+                `${API_BASE_URL}/api/chatbot/message`,
+                {
+                    method: 'POST',
+
+                    headers: {
+                        'Content-Type':
+                            'application/json',
+
+                        Accept:
+                            'application/json',
+
+                        Authorization:
+                            `Bearer ${accessToken}`,
+                    },
+
+                    body: JSON.stringify({
+                        message: text,
+                    }),
+                }
+            );
+
+            // --------------------------------------------------
+            // PARSE RESPONSE
+            // --------------------------------------------------
+
+            let responseData = null;
+
+            try {
+                responseData =
+                    await response.json();
+            } catch {
+                responseData = null;
+            }
+
+            // --------------------------------------------------
+            // HTTP ERROR
+            // --------------------------------------------------
+
+            if (!response.ok) {
+                const error = new Error(
+                    responseData?.message ||
+                    responseData?.error ||
+                    `Request failed with status ${response.status}`
+                );
+
+                error.response = {
+                    status: response.status,
+                    data: responseData,
+                };
+
+                throw error;
+            }
+
+            // --------------------------------------------------
+            // FORMAT BACKEND RESPONSE
+            // --------------------------------------------------
+
+            const backendResponse =
+                getBackendReply({
+                    data: responseData,
+                });
+
+            // --------------------------------------------------
+            // LEAVE DATA
+            // --------------------------------------------------
+
+            const leaveBalances =
+                formatLeaveBalances(
+                    backendResponse.data
+                );
+
+            // --------------------------------------------------
+            // TRAINING DATA
+            // --------------------------------------------------
+
+            const trainings =
+                formatTrainings(
+                    backendResponse.data
+                );
+
+            const recruitmentJobs =
+                formatRecruitmentJobs(
+                    backendResponse.data
+                );
+
+            const recruitmentApplications =
+                formatRecruitmentApplications(
+                    backendResponse.data
+                );
+
+            // --------------------------------------------------
+            // DATA TO SEND TO MESSAGE
+            // --------------------------------------------------
+
+            let messageData =
+                backendResponse.data;
+
+            if (
+                backendResponse.type ===
+                'leave-balance' &&
+                leaveBalances
+            ) {
+                messageData =
+                    leaveBalances;
+            }
+
+            if (
+                backendResponse.type ===
+                'training' &&
+                trainings
+            ) {
+                messageData =
+                    trainings;
+            }
+
+            if (
+                backendResponse.type ===
+                    'recruitment' &&
+                (
+                    recruitmentJobs ||
+                    recruitmentApplications
+                )
+            ) {
+                messageData = {
+                    jobs: recruitmentJobs || [],
+                    recruitmentApplications:
+                        recruitmentApplications || [],
+                };
+            }
+
+            // --------------------------------------------------
+            // ADD BOT RESPONSE
+            // --------------------------------------------------
+
+            addMessage(
+                'bot',
+                backendResponse.text,
+                backendResponse.type ||
+                'normal',
+                messageData
+            );
+        } catch (error) {
+            console.error(
+                'HR Chatbot API Error:',
+                error
+            );
+
+            addMessage(
+                'bot',
+                getApiErrorMessage(error),
+                'info',
+                null
+            );
+        } finally {
+            setIsTyping(false);
+        }
+    };
+
+    // ==========================================================
+    // ENTER KEY
+    // ==========================================================
+
+    const handleKeyDown = (event) => {
+        if (
+            event.key === 'Enter' &&
+            !event.shiftKey
+        ) {
+            event.preventDefault();
+            sendMessage();
+        }
+    };
+
+    // ==========================================================
+    // CLEAR CHAT
+    // ==========================================================
+
+    const clearChat = () => {
+        setMessages([
+            {
+                id: `welcome-${Date.now()}`,
+                sender: 'bot',
+                text: getWelcomeText(role),
+                time: new Date(),
+                type: 'welcome',
+                data: null,
             },
         ]);
 
-        setInput('');
-        setError('');
-        setLoading(false);
+        setIsTyping(false);
+        setMessage('');
     };
 
-    /* ========================================================
-       GET ACCESS TOKEN
-       ======================================================== */
+    // ==========================================================
+    // FORMAT TIME
+    // ==========================================================
 
-    const getAccessToken = () => {
-        if (
-            typeof window ===
-            'undefined'
-        ) {
-            return null;
-        }
-
-        const possibleKeys = [
-            'accessToken',
-            'token',
-            'jwtToken',
-            'jwt',
-            'authToken',
-        ];
-
-        /* Session storage first */
-
-        for (const key of possibleKeys) {
-            try {
-                const value =
-                    sessionStorage.getItem(
-                        key
-                    );
-
-                if (value) {
-                    return value;
-                }
-            } catch {
-                // Ignore storage errors
-            }
-        }
-
-        /* Local storage */
-
-        for (const key of possibleKeys) {
-            try {
-                const value =
-                    localStorage.getItem(
-                        key
-                    );
-
-                if (value) {
-                    return value;
-                }
-            } catch {
-                // Ignore storage errors
-            }
-        }
-
-        return null;
-    };
-
-    /* ========================================================
-       SEND MESSAGE
-       ======================================================== */
-
-    const sendMessage = async (
-        messageOverride = null
-    ) => {
-        const text = String(
-            messageOverride !== null
-                ? messageOverride
-                : input
-        ).trim();
-
-        if (
-            !text ||
-            loading
-        ) {
-            return;
-        }
-
-        setError('');
-
-        const userMessage = {
-            id: createMessageId('user'),
-            sender: 'user',
-            text,
-            type: 'normal',
-            createdAt: new Date(),
-        };
-
-        setMessages(
-            (previous) => [
-                ...previous,
-                userMessage,
-            ]
-        );
-
-        setInput('');
-        setLoading(true);
-
+    const formatTime = (date) => {
         try {
-            /* ================================================
-               AUTH TOKEN
-               ================================================ */
-
-            const accessToken =
-                getAccessToken();
-
-            if (!accessToken) {
-                throw new Error(
-                    'Your HRMS session is not available. Please log in again.'
-                );
-            }
-
-            /* ================================================
-               API URL
-
-               IMPORTANT:
-
-               We DO NOT use:
-
-               https://api.saitejainfotechprivatelimited.com
-
-               anymore.
-
-               Because your backend is on:
-
-               https://hrms.saitejainfotechprivatelimited.com
-
-               ================================================ */
-
-            const apiUrl =
-                `${API_BASE_URL}/api/chatbot/message`;
-
-            console.log(
-                'HRMS Chatbot API:',
-                apiUrl
-            );
-
-            /* ================================================
-               API REQUEST
-               ================================================ */
-
-            const response =
-                await fetch(
-                    apiUrl,
-                    {
-                        method: 'POST',
-
-                        headers: {
-                            'Content-Type':
-                                'application/json',
-
-                            Accept:
-                                'application/json',
-
-                            Authorization:
-                                `Bearer ${accessToken}`,
-                        },
-
-                        body:
-                            JSON.stringify({
-                                message: text,
-                            }),
-                    }
-                );
-
-            /* ================================================
-               READ RESPONSE
-               ================================================ */
-
-            let responseData =
-                null;
-
-            const contentType =
-                response.headers.get(
-                    'content-type'
-                ) || '';
-
-            if (
-                contentType.includes(
-                    'application/json'
-                )
-            ) {
-                try {
-                    responseData =
-                        await response.json();
-                } catch {
-                    responseData = null;
+            return new Intl.DateTimeFormat(
+                'en-IN',
+                {
+                    hour: '2-digit',
+                    minute: '2-digit',
                 }
-            } else {
-                try {
-                    const textResponse =
-                        await response.text();
-
-                    responseData =
-                        textResponse;
-                } catch {
-                    responseData =
-                        null;
-                }
-            }
-
-            /* ================================================
-               HTTP ERROR
-               ================================================ */
-
-            if (!response.ok) {
-                const serverMessage =
-                    responseData?.message ||
-                    responseData?.error ||
-                    responseData?.data?.message ||
-                    (
-                        typeof responseData ===
-                        'string'
-                            ? responseData
-                            : `Request failed with status ${response.status}`
-                    );
-
-                const requestError =
-                    new Error(
-                        serverMessage
-                    );
-
-                requestError.status =
-                    response.status;
-
-                requestError.response = {
-                    status:
-                        response.status,
-
-                    data:
-                        responseData,
-                };
-
-                throw requestError;
-            }
-
-            /* ================================================
-               FORMAT BACKEND RESPONSE
-               ================================================ */
-
-            const formatted =
-                getBackendReply({
-                    data:
-                        responseData,
-                });
-
-            setMessages(
-                (previous) => [
-                    ...previous,
-
-                    {
-                        id: createMessageId(
-                            'bot'
-                        ),
-
-                        sender: 'bot',
-
-                        text:
-                            formatted.text ||
-                            'I received an empty response from the HRMS server.',
-
-                        type:
-                            formatted.type ||
-                            'normal',
-
-                        data:
-                            formatted.data ||
-                            {},
-
-                        createdAt:
-                            new Date(),
-                    },
-                ]
-            );
-        } catch (err) {
-            console.error(
-                'HR Chatbot API Error:',
-                err
-            );
-
-            let errorMessage =
-                'Something went wrong while contacting the HR Assistant.';
-
-            const status =
-                err?.response
-                    ?.status ||
-                err?.status;
-
-            if (
-                status === 401
-            ) {
-                errorMessage =
-                    'Your HRMS session has expired. Please log in again.';
-            } else if (
-                status === 403
-            ) {
-                errorMessage =
-                    'You do not have permission to access this HRMS information.';
-            } else if (
-                status === 404
-            ) {
-                errorMessage =
-                    'The HR Assistant API endpoint was not found. Please check /api/chatbot/message on the live server.';
-            } else if (
-                status >= 500
-            ) {
-                errorMessage =
-                    'The HRMS server encountered an error while processing your request. Please try again.';
-            } else if (
-                String(
-                    err?.message || ''
-                )
-                    .toLowerCase()
-                    .includes(
-                        'failed to fetch'
-                    )
-            ) {
-                errorMessage =
-                    'Unable to connect to the HRMS API server. Please check the live backend connection.';
-            } else if (
-                String(
-                    err?.message || ''
-                )
-                    .toLowerCase()
-                    .includes(
-                        'network'
-                    )
-            ) {
-                errorMessage =
-                    'Network error while connecting to the HRMS API server.';
-            } else if (
-                err?.message
-            ) {
-                errorMessage =
-                    err.message;
-            }
-
-            setError(
-                errorMessage
-            );
-
-            setMessages(
-                (previous) => [
-                    ...previous,
-
-                    {
-                        id: createMessageId(
-                            'error'
-                        ),
-
-                        sender: 'bot',
-
-                        text:
-                            errorMessage,
-
-                        type: 'error',
-
-                        createdAt:
-                            new Date(),
-                    },
-                ]
-            );
-        } finally {
-            setLoading(false);
+            ).format(new Date(date));
+        } catch {
+            return '';
         }
     };
 
-    /* ========================================================
-       ENTER KEY
-       ======================================================== */
+    // ==========================================================
+    // RENDER
+    // ==========================================================
 
-    const handleKeyDown = (
-        event
-    ) => {
-        if (
-            event.key !==
-            'Enter'
-        ) {
-            return;
-        }
+    return (
+        <>
+            {/* =================================================
+                FLOATING CHAT BUTTON
+            ================================================== */}
 
-        if (
-            event.shiftKey
-        ) {
-            return;
-        }
+            {!isOpen && (
+                <button
+                    type="button"
+                    className={`hr-chatbot-launcher ${isDark ? 'dark' : ''
+                        }`}
+                    onClick={() => {
+                        setIsOpen(true);
+                        setIsMinimized(false);
+                    }}
+                    aria-label="Open HR Assistant"
+                    title="Ask HR Assistant"
+                >
+                    <span className="hr-chatbot-launcher-glow" />
 
-        event.preventDefault();
-
-        sendMessage();
-    };
-
-    /* ========================================================
-       QUICK ACTION
-       ======================================================== */
-
-    const handleQuickAction = (
-        message
-    ) => {
-        sendMessage(message);
-    };
-
-    /* ========================================================
-       RENDER MESSAGE TEXT
-       ======================================================== */
-
-    const renderMessageText = (
-        text
-    ) => {
-        if (!text) {
-            return null;
-        }
-
-        const lines =
-            String(text).split(
-                '\n'
-            );
-
-        return lines.map(
-            (
-                line,
-                index
-            ) => {
-                const trimmed =
-                    line.trim();
-
-                if (!trimmed) {
-                    return (
-                        <div
-                            key={index}
-                            className="hr-chatbot-text-spacer"
+                    <span className="hr-chatbot-launcher-icon">
+                        <Bot
+                            size={25}
+                            strokeWidth={2.2}
                         />
-                    );
-                }
+                    </span>
 
-                const parts =
-                    trimmed.split(
-                        /(\*\*.*?\*\*)/
-                    );
+                    <span className="hr-chatbot-online-dot" />
 
-                return (
-                    <div
-                        key={index}
-                        className="hr-chatbot-text-line"
-                    >
-                        {parts.map(
-                            (
-                                part,
-                                partIndex
-                            ) => {
-                                if (
-                                    part.startsWith(
-                                        '**'
-                                    ) &&
-                                    part.endsWith(
-                                        '**'
-                                    )
-                                ) {
-                                    return (
-                                        <strong
-                                            key={
-                                                partIndex
-                                            }
-                                        >
-                                            {part.slice(
-                                                2,
-                                                -2
-                                            )}
-                                        </strong>
-                                    );
-                                }
+                    <span className="hr-chatbot-launcher-text">
+                        Ask HR
+                    </span>
+                </button>
+            )}
 
-                                return (
-                                    <span
-                                        key={
-                                            partIndex
-                                        }
-                                    >
-                                        {part}
-                                    </span>
-                                );
-                            }
-                        )}
-                    </div>
-                );
-            }
-        );
-    };
+            {/* =================================================
+                CHAT WINDOW
+            ================================================== */}
 
-    /* ========================================================
-       LEAVE BALANCE CARD
-       ======================================================== */
+            {isOpen && (
+                <div
+                    className={`hr-chatbot-wrapper ${isDark ? 'dark' : ''
+                        } ${isMinimized
+                            ? 'minimized'
+                            : ''
+                        }`}
+                >
+                    <div className="hr-chatbot-window">
 
-    const renderLeaveBalance =
-        (data) => {
-            const balances =
-                Array.isArray(
-                    data?.leaveBalances
-                )
-                    ? data.leaveBalances
-                    : Array.isArray(
-                          data?.balances
-                      )
-                    ? data.balances
-                    : [];
+                        {/* =================================================
+                            HEADER
+                        ================================================== */}
 
-            if (
-                balances.length ===
-                0
-            ) {
-                return null;
-            }
+                        <div className="hr-chatbot-header">
 
-            return (
-                <div className="hr-chatbot-card hr-chatbot-leave-card">
-                    <div className="hr-chatbot-card-title">
-                        <CalendarDays
-                            size={18}
-                        />
+                            <div className="hr-chatbot-header-left">
 
-                        <span>
-                            Leave Balance
-                        </span>
-                    </div>
+                                <div className="hr-chatbot-avatar">
+                                    <Bot
+                                        size={22}
+                                        strokeWidth={2.2}
+                                    />
 
-                    <div className="hr-chatbot-balance-grid">
-                        {balances.map(
-                            (
-                                balance,
-                                index
-                            ) => {
-                                const name =
-                                    balance?.leaveType ||
-                                    balance?.type ||
-                                    balance?.name ||
-                                    `Leave ${
-                                        index +
-                                        1
-                                    }`;
+                                    <span className="hr-chatbot-avatar-status" />
+                                </div>
 
-                                const value =
-                                    balance?.balance ??
-                                    balance?.remaining ??
-                                    balance?.available ??
-                                    balance?.days ??
-                                    0;
+                                <div className="hr-chatbot-header-info">
 
-                                return (
-                                    <div
-                                        className="hr-chatbot-balance-item"
-                                        key={
-                                            balance?.id ||
-                                            `${name}-${index}`
-                                        }
-                                    >
-                                        <span>
-                                            {
-                                                name
-                                            }
+                                    <div className="hr-chatbot-title-row">
+
+                                        <h3>
+                                            HR Assistant
+                                        </h3>
+
+                                        <span className="hr-chatbot-ai-badge">
+                                            <Sparkles
+                                                size={10}
+                                            />
+                                            AI
                                         </span>
 
-                                        <strong>
-                                            {
-                                                value
-                                            }
-                                        </strong>
                                     </div>
-                                );
-                            }
-                        )}
-                    </div>
-                </div>
-            );
-        };
 
-    /* ========================================================
-       TRAINING CARD
-       ======================================================== */
+                                    <p>
+                                        {role ===
+                                            'ADMIN'
+                                            ? 'Admin Assistant'
+                                            : role ===
+                                                'HR'
+                                                ? 'HR Operations Assistant'
+                                                : 'Employee Assistant'}
+                                    </p>
 
-    const renderTrainingCard =
-        (data) => {
-            const trainings =
-                Array.isArray(
-                    data?.trainings
-                )
-                    ? data.trainings
-                    : [];
+                                </div>
 
-            if (
-                trainings.length ===
-                0
-            ) {
-                return null;
-            }
+                            </div>
 
-            return (
-                <div className="hr-chatbot-card hr-chatbot-training-card">
-                    <div className="hr-chatbot-card-title">
-                        <GraduationCap
-                            size={18}
-                        />
+                            <div className="hr-chatbot-header-actions">
 
-                        <span>
-                            Training
-                        </span>
-                    </div>
+                                <button
+                                    type="button"
+                                    onClick={
+                                        clearChat
+                                    }
+                                    title="Clear conversation"
+                                    aria-label="Clear conversation"
+                                >
+                                    <RotateCcw
+                                        size={16}
+                                    />
+                                </button>
 
-                    <div className="hr-chatbot-training-list">
-                        {trainings.map(
-                            (
-                                training,
-                                index
-                            ) => {
-                                const title =
-                                    training?.title ||
-                                    training?.trainingName ||
-                                    training?.name ||
-                                    'Training';
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setIsMinimized(
+                                            (prev) =>
+                                                !prev
+                                        )
+                                    }
+                                    title={
+                                        isMinimized
+                                            ? 'Expand'
+                                            : 'Minimize'
+                                    }
+                                    aria-label={
+                                        isMinimized
+                                            ? 'Expand'
+                                            : 'Minimize'
+                                    }
+                                >
+                                    <Minimize2
+                                        size={16}
+                                    />
+                                </button>
 
-                                const status =
-                                    training?.status ||
-                                    training?.enrollmentStatus ||
-                                    '';
+                                <button
+                                    type="button"
+                                    onClick={() =>
+                                        setIsOpen(
+                                            false
+                                        )
+                                    }
+                                    title="Close"
+                                    aria-label="Close chatbot"
+                                >
+                                    <X size={18} />
+                                </button>
 
-                                return (
-                                    <div
-                                        className="hr-chatbot-training-item"
-                                        key={
-                                            training?.id ||
-                                            index
-                                        }
-                                    >
-                                        <div className="hr-chatbot-training-icon">
-                                            <BookOpen
-                                                size={
-                                                    16
+                            </div>
+
+                        </div>
+
+                        {!isMinimized && (
+                            <>
+
+                                {/* =================================================
+                                    SECURITY STRIP
+                                ================================================== */}
+
+                                <div className="hr-chatbot-security-strip">
+
+                                    <span className="hr-chatbot-security-icon">
+                                        <Sparkles
+                                            size={13}
+                                        />
+                                    </span>
+
+                                    <span>
+                                        Connected to your HRMS
+                                    </span>
+
+                                    <span className="hr-chatbot-role-pill">
+                                        {role}
+                                    </span>
+
+                                </div>
+
+                                {/* =================================================
+                                    MESSAGES
+                                ================================================== */}
+
+                                <div className="hr-chatbot-messages">
+
+                                    {messages.map(
+                                        (item) => (
+
+                                            <div
+                                                key={
+                                                    item.id
                                                 }
-                                            />
-                                        </div>
+                                                className={`hr-chatbot-message-row ${item.sender ===
+                                                        'user'
+                                                        ? 'user'
+                                                        : 'bot'
+                                                    }`}
+                                            >
 
-                                        <div className="hr-chatbot-training-content">
-                                            <strong>
-                                                {
-                                                    title
-                                                }
-                                            </strong>
+                                                {/* BOT AVATAR */}
 
-                                            {status && (
-                                                <span
-                                                    className={`hr-chatbot-status ${getStatusClass(
-                                                        status
-                                                    )}`}
-                                                >
-                                                    {displayStatus(
-                                                        status
+                                                {item.sender ===
+                                                    'bot' && (
+                                                        <div className="hr-chatbot-message-avatar">
+                                                            <Bot
+                                                                size={
+                                                                    15
+                                                                }
+                                                                strokeWidth={
+                                                                    2.3
+                                                                }
+                                                            />
+                                                        </div>
                                                     )}
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            }
-                        )}
-                    </div>
-                </div>
-            );
-        };
 
-    /* ========================================================
-       RECRUITMENT CARD
-       ======================================================== */
+                                                <div className="hr-chatbot-message-content">
 
-    const renderRecruitmentCard =
-        (data) => {
-            const jobs =
-                Array.isArray(
-                    data?.jobs
-                )
-                    ? data.jobs
-                    : [];
+                                                    {/* WELCOME NAME */}
 
-            const applications =
-                Array.isArray(
-                    data?.recruitmentApplications
-                )
-                    ? data.recruitmentApplications
-                    : [];
+                                                    {item.type ===
+                                                        'welcome' && (
+                                                            <div className="hr-chatbot-welcome-name">
+                                                                {getGreeting(
+                                                                    role,
+                                                                    user?.name
+                                                                )}
+                                                            </div>
+                                                        )}
 
-            if (
-                jobs.length === 0 &&
-                applications.length === 0
-            ) {
-                return null;
-            }
+                                                    {/* MESSAGE */}
 
-            return (
-                <div className="hr-chatbot-card hr-chatbot-recruitment-card">
-                    <div className="hr-chatbot-card-title">
-                        <BriefcaseBusiness
-                            size={18}
-                        />
+                                                    <div
+                                                        className={`hr-chatbot-bubble ${item.type ===
+                                                                'info'
+                                                                ? 'info'
+                                                                : ''
+                                                            } ${item.type ===
+                                                                'leave-balance'
+                                                                ? 'leave-balance'
+                                                                : ''
+                                                            } ${item.type ===
+                                                                'training'
+                                                                ? 'training-message'
+                                                                : ''
+                                                            } ${item.type ===
+                                                                'recruitment'
+                                                                ? 'recruitment-message'
+                                                                : ''
+                                                            }`}
+                                                    >
+                                                        {item.text}
+                                                    </div>
 
-                        <span>
-                            Recruitment
-                        </span>
-                    </div>
+                                                    {/* =================================================
+                                                        LEAVE BALANCE CARDS
+                                                    ================================================== */}
 
-                    {jobs.length >
-                        0 && (
-                        <div className="hr-chatbot-job-list">
-                            {jobs.map(
-                                (
-                                    job,
-                                    index
-                                ) => {
-                                    const title =
-                                        job?.title ||
-                                        job?.jobTitle ||
-                                        job?.position ||
-                                        'Open Position';
+                                                    {item.type ===
+                                                        'leave-balance' &&
+                                                        Array.isArray(
+                                                            item.data
+                                                        ) &&
+                                                        item.data
+                                                            .length >
+                                                        0 && (
+                                                            <div className="hr-chatbot-leave-cards">
 
-                                    const department =
-                                        job?.department ||
-                                        job?.departmentName ||
-                                        '';
+                                                                {item.data.map(
+                                                                    (
+                                                                        balance,
+                                                                        index
+                                                                    ) => (
+                                                                        <div
+                                                                            className="hr-chatbot-leave-card"
+                                                                            key={`${balance.leaveType}-${index}`}
+                                                                        >
 
-                                    const status =
-                                        job?.status ||
-                                        '';
+                                                                            <div className="hr-chatbot-leave-card-top">
 
-                                    return (
-                                        <div
-                                            className="hr-chatbot-job-item"
-                                            key={
-                                                job?.id ||
-                                                index
-                                            }
-                                        >
-                                            <div className="hr-chatbot-job-icon">
-                                                <BriefcaseBusiness
+                                                                                <span>
+                                                                                    {formatLeaveName(
+                                                                                        balance.leaveType
+                                                                                    )}
+                                                                                </span>
+
+                                                                                <CalendarDays
+                                                                                    size={
+                                                                                        14
+                                                                                    }
+                                                                                />
+
+                                                                            </div>
+
+                                                                            <div className="hr-chatbot-leave-card-number">
+
+                                                                                {balance.remaining ===
+                                                                                    'Unlimited'
+                                                                                    ? '∞'
+                                                                                    : formatNumber(
+                                                                                        balance.remaining
+                                                                                    )}
+
+                                                                            </div>
+
+                                                                            <div className="hr-chatbot-leave-card-label">
+
+                                                                                {balance.remaining ===
+                                                                                    'Unlimited'
+                                                                                    ? 'Unlimited'
+                                                                                    : 'days remaining'}
+
+                                                                            </div>
+
+                                                                            {balance.remaining !==
+                                                                                'Unlimited' && (
+                                                                                    <div className="hr-chatbot-leave-card-meta">
+                                                                                        Used{' '}
+                                                                                        {formatNumber(
+                                                                                            balance.used
+                                                                                        )}{' '}
+                                                                                        of{' '}
+                                                                                        {formatNumber(
+                                                                                            balance.total
+                                                                                        )}
+                                                                                    </div>
+                                                                                )}
+
+                                                                        </div>
+                                                                    )
+                                                                )}
+
+                                                            </div>
+                                                        )}
+
+                                                    {/* =================================================
+                                                        TRAINING CARDS
+                                                    ================================================== */}
+
+                                                    {item.type ===
+                                                        'training' &&
+                                                        Array.isArray(
+                                                            item.data
+                                                        ) &&
+                                                        item.data
+                                                            .length >
+                                                        0 && (
+                                                            <div className="hr-chatbot-training-cards">
+
+                                                                {item.data.map(
+                                                                    (
+                                                                        training,
+                                                                        index
+                                                                    ) => (
+                                                                        <TrainingCard
+                                                                            key={
+                                                                                training?.id ||
+                                                                                training?.trainingId ||
+                                                                                `${getTrainingTitle(
+                                                                                    training
+                                                                                )}-${index}`
+                                                                            }
+                                                                            training={
+                                                                                training
+                                                                            }
+                                                                        />
+                                                                    )
+                                                                )}
+
+                                                            </div>
+                                                        )}
+
+                                                    {/* =================================================
+                                                        NO TRAINING DATA
+                                                    ================================================== */}
+
+                                                    {item.type ===
+                                                        'training' &&
+                                                        Array.isArray(
+                                                            item.data
+                                                        ) &&
+                                                        item.data
+                                                            .length ===
+                                                        0 && (
+                                                            <div className="hr-chatbot-training-empty">
+                                                                <GraduationCap
+                                                                    size={
+                                                                        22
+                                                                    }
+                                                                />
+
+                                                                <div>
+                                                                    <strong>
+                                                                        No training records
+                                                                    </strong>
+
+                                                                    <span>
+                                                                        No training information is currently available for you.
+                                                                    </span>
+                                                                </div>
+                                                            </div>
+                                                        )}
+
+
+                                                     {/* =================================================
+                                                         RECRUITMENT JOB CARDS
+                                                     ================================================== */}
+
+                                                     {item.type ===
+                                                         'recruitment' &&
+                                                         Array.isArray(item.data?.jobs) &&
+                                                         item.data.jobs.length > 0 && (
+                                                             <div className="hr-chatbot-recruitment-cards">
+                                                                 {item.data.jobs.map((job, index) => (
+                                                                     <RecruitmentJobCard
+                                                                         key={job?.id || `${getJobTitle(job)}-${index}`}
+                                                                         job={job}
+                                                                     />
+                                                                 ))}
+                                                             </div>
+                                                         )}
+
+                                                     {/* =================================================
+                                                         RECRUITMENT REFERRAL CARDS
+                                                     ================================================== */}
+
+                                                     {item.type ===
+                                                         'recruitment' &&
+                                                         Array.isArray(item.data?.recruitmentApplications) &&
+                                                         item.data.recruitmentApplications.length > 0 && (
+                                                             <div className="hr-chatbot-referral-cards">
+                                                                 {item.data.recruitmentApplications.map((referral, index) => (
+                                                                     <RecruitmentReferralCard
+                                                                         key={referral?.id || `${referral?.candidateName || 'referral'}-${index}`}
+                                                                         referral={referral}
+                                                                     />
+                                                                 ))}
+                                                             </div>
+                                                         )}
+
+                                                     {item.type ===
+                                                         'recruitment' &&
+                                                         Array.isArray(item.data?.jobs) &&
+                                                         Array.isArray(item.data?.recruitmentApplications) &&
+                                                         item.data.jobs.length === 0 &&
+                                                         item.data.recruitmentApplications.length === 0 && (
+                                                             <div className="hr-chatbot-recruitment-empty">
+                                                                 <BriefcaseBusiness size={22} />
+                                                                 <div>
+                                                                     <strong>No recruitment records</strong>
+                                                                     <span>
+                                                                         No matching job openings or referral information is currently available.
+                                                                     </span>
+                                                                 </div>
+                                                             </div>
+                                                         )}
+
+                                                    <div className="hr-chatbot-message-time">
+                                                        {formatTime(
+                                                            item.time
+                                                        )}
+                                                    </div>
+
+                                                </div>
+
+                                                {/* USER AVATAR */}
+
+                                                {item.sender ===
+                                                    'user' && (
+                                                        <div className="hr-chatbot-user-avatar">
+
+                                                            {user?.name
+                                                                ?.split(
+                                                                    ' '
+                                                                )
+                                                                .map(
+                                                                    (
+                                                                        n
+                                                                    ) =>
+                                                                        n[0]
+                                                                )
+                                                                .join(
+                                                                    ''
+                                                                )
+                                                                .slice(
+                                                                    0,
+                                                                    2
+                                                                )
+                                                                .toUpperCase() || (
+                                                                    <UserRound
+                                                                        size={
+                                                                            15
+                                                                        }
+                                                                    />
+                                                                )}
+
+                                                        </div>
+                                                    )}
+
+                                            </div>
+                                        )
+                                    )}
+
+                                    {/* =================================================
+                                        TYPING INDICATOR
+                                    ================================================== */}
+
+                                    {isTyping && (
+                                        <div className="hr-chatbot-message-row bot">
+
+                                            <div className="hr-chatbot-message-avatar">
+                                                <Bot
                                                     size={
-                                                        16
+                                                        15
+                                                    }
+                                                    strokeWidth={
+                                                        2.3
                                                     }
                                                 />
                                             </div>
 
-                                            <div className="hr-chatbot-job-content">
-                                                <strong>
-                                                    {
-                                                        title
-                                                    }
-                                                </strong>
-
-                                                {department && (
-                                                    <span>
-                                                        {
-                                                            department
-                                                        }
-                                                    </span>
-                                                )}
-
-                                                {status && (
-                                                    <span
-                                                        className={`hr-chatbot-status ${getStatusClass(
-                                                            status
-                                                        )}`}
-                                                    >
-                                                        {displayStatus(
-                                                            status
-                                                        )}
-                                                    </span>
-                                                )}
+                                            <div className="hr-chatbot-typing">
+                                                <span />
+                                                <span />
+                                                <span />
                                             </div>
+
                                         </div>
-                                    );
-                                }
-                            )}
-                        </div>
-                    )}
+                                    )}
 
-                    {applications.length >
-                        0 && (
-                        <div className="hr-chatbot-application-list">
-                            {applications.map(
-                                (
-                                    application,
-                                    index
-                                ) => {
-                                    const name =
-                                        application?.candidateName ||
-                                        application?.name ||
-                                        application?.applicantName ||
-                                        'Candidate';
+                                    <div
+                                        ref={
+                                            messagesEndRef
+                                        }
+                                    />
 
-                                    const status =
-                                        application?.status ||
-                                        '';
+                                </div>
 
-                                    return (
-                                        <div
-                                            className="hr-chatbot-application-item"
-                                            key={
-                                                application?.id ||
-                                                index
+                                {/* =================================================
+                                    QUICK ACTIONS
+                                ================================================== */}
+
+                                {messages.length <=
+                                    1 && (
+                                        <div className="hr-chatbot-quick-section">
+
+                                            <div className="hr-chatbot-section-label">
+                                                <span>
+                                                    Quick actions
+                                                </span>
+                                            </div>
+
+                                            <div className="hr-chatbot-quick-grid">
+
+                                                {quickActions.map(
+                                                    (
+                                                        action
+                                                    ) => {
+
+                                                        const Icon =
+                                                            action.icon;
+
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                key={
+                                                                    action.label
+                                                                }
+                                                                onClick={() =>
+                                                                    sendMessage(
+                                                                        action.message
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    isTyping
+                                                                }
+                                                                className="hr-chatbot-quick-card"
+                                                            >
+
+                                                                <span className="hr-chatbot-quick-icon">
+                                                                    <Icon
+                                                                        size={
+                                                                            15
+                                                                        }
+                                                                    />
+                                                                </span>
+
+                                                                <span>
+                                                                    {
+                                                                        action.label
+                                                                    }
+                                                                </span>
+
+                                                                <ChevronRight
+                                                                    size={
+                                                                        14
+                                                                    }
+                                                                    className="hr-chatbot-quick-arrow"
+                                                                />
+
+                                                            </button>
+                                                        );
+                                                    }
+                                                )}
+
+                                            </div>
+
+                                        </div>
+                                    )}
+
+                                {/* =================================================
+                                    INPUT
+                                ================================================== */}
+
+                                <div className="hr-chatbot-input-area">
+
+                                    <div className="hr-chatbot-input-box">
+
+                                        <textarea
+                                            ref={
+                                                inputRef
                                             }
+                                            value={
+                                                message
+                                            }
+                                            onChange={(
+                                                event
+                                            ) =>
+                                                setMessage(
+                                                    event
+                                                        .target
+                                                        .value
+                                                )
+                                            }
+                                            onKeyDown={
+                                                handleKeyDown
+                                            }
+                                            placeholder="Ask anything about HR..."
+                                            rows={1}
+                                            maxLength={
+                                                1000
+                                            }
+                                            disabled={
+                                                isTyping
+                                            }
+                                        />
+
+                                        <button
+                                            type="button"
+                                            className="hr-chatbot-send-button"
+                                            onClick={() =>
+                                                sendMessage()
+                                            }
+                                            disabled={
+                                                !message.trim() ||
+                                                isTyping
+                                            }
+                                            aria-label="Send message"
+                                            title="Send message"
                                         >
-                                            <User
+                                            <Send
                                                 size={
-                                                    16
+                                                    17
+                                                }
+                                                strokeWidth={
+                                                    2.2
                                                 }
                                             />
+                                        </button>
 
-                                            <div>
-                                                <strong>
-                                                    {
-                                                        name
-                                                    }
-                                                </strong>
-
-                                                {status && (
-                                                    <span
-                                                        className={`hr-chatbot-status ${getStatusClass(
-                                                            status
-                                                        )}`}
-                                                    >
-                                                        {displayStatus(
-                                                            status
-                                                        )}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        </div>
-                                    );
-                                }
-                            )}
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-    /* ========================================================
-       ATTENDANCE CARD
-       ======================================================== */
-
-    const renderAttendanceCard =
-        (data) => {
-            if (!data) {
-                return null;
-            }
-
-            const attendance =
-                data?.attendance ||
-                data?.attendanceRecord ||
-                data?.record ||
-                null;
-
-            if (!attendance) {
-                return null;
-            }
-
-            const status =
-                attendance?.status ||
-                data?.status ||
-                '';
-
-            const date =
-                attendance?.date ||
-                data?.date ||
-                '';
-
-            const checkIn =
-                attendance?.checkIn ||
-                data?.checkIn ||
-                '';
-
-            const checkOut =
-                attendance?.checkOut ||
-                data?.checkOut ||
-                '';
-
-            const workHours =
-                attendance?.workHours ??
-                data?.workHours ??
-                null;
-
-            return (
-                <div className="hr-chatbot-card hr-chatbot-attendance-card">
-                    <div className="hr-chatbot-card-title">
-                        <Clock3
-                            size={18}
-                        />
-
-                        <span>
-                            Attendance
-                        </span>
-                    </div>
-
-                    <div className="hr-chatbot-attendance-grid">
-                        {date && (
-                            <div>
-                                <span>
-                                    Date
-                                </span>
-
-                                <strong>
-                                    {formatDate(
-                                        date
-                                    )}
-                                </strong>
-                            </div>
-                        )}
-
-                        {status && (
-                            <div>
-                                <span>
-                                    Status
-                                </span>
-
-                                <strong
-                                    className={`hr-chatbot-status ${getStatusClass(
-                                        status
-                                    )}`}
-                                >
-                                    {displayStatus(
-                                        status
-                                    )}
-                                </strong>
-                            </div>
-                        )}
-
-                        {checkIn && (
-                            <div>
-                                <span>
-                                    Check In
-                                </span>
-
-                                <strong>
-                                    {formatTime(
-                                        checkIn
-                                    )}
-                                </strong>
-                            </div>
-                        )}
-
-                        {checkOut && (
-                            <div>
-                                <span>
-                                    Check Out
-                                </span>
-
-                                <strong>
-                                    {formatTime(
-                                        checkOut
-                                    )}
-                                </strong>
-                            </div>
-                        )}
-
-                        {workHours !==
-                            null && (
-                            <div>
-                                <span>
-                                    Work Hours
-                                </span>
-
-                                <strong>
-                                    {formatNumber(
-                                        workHours
-                                    )}
-                                </strong>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            );
-        };
-
-    /* ========================================================
-       MONTHLY ATTENDANCE
-       ======================================================== */
-
-    const renderMonthlyAttendance =
-        (data) => {
-            const stats =
-                data?.monthlyStats ||
-                data?.attendanceStats ||
-                data?.stats ||
-                null;
-
-            if (!stats) {
-                return null;
-            }
-
-            const hasStats =
-                stats?.presentCount !==
-                    undefined ||
-                stats?.absentCount !==
-                    undefined ||
-                stats?.halfDayCount !==
-                    undefined ||
-                stats?.leaveCount !==
-                    undefined ||
-                stats?.attendancePercent !==
-                    undefined ||
-                stats?.totalWorkHours !==
-                    undefined;
-
-            if (!hasStats) {
-                return null;
-            }
-
-            const percentage =
-                Math.min(
-                    100,
-                    Math.max(
-                        0,
-                        Number(
-                            stats.attendancePercent
-                        ) || 0
-                    )
-                );
-
-            return (
-                <div className="hr-chatbot-card hr-chatbot-monthly-card">
-                    <div className="hr-chatbot-card-title">
-                        <Calendar
-                            size={18}
-                        />
-
-                        <span>
-                            Attendance Summary
-                        </span>
-                    </div>
-
-                    <div className="hr-chatbot-stats-grid">
-                        <div className="hr-chatbot-stat">
-                            <span>
-                                Present
-                            </span>
-
-                            <strong>
-                                {
-                                    stats?.presentCount ??
-                                    0
-                                }
-                            </strong>
-                        </div>
-
-                        <div className="hr-chatbot-stat">
-                            <span>
-                                Absent
-                            </span>
-
-                            <strong>
-                                {
-                                    stats?.absentCount ??
-                                    0
-                                }
-                            </strong>
-                        </div>
-
-                        <div className="hr-chatbot-stat">
-                            <span>
-                                Half Day
-                            </span>
-
-                            <strong>
-                                {
-                                    stats?.halfDayCount ??
-                                    0
-                                }
-                            </strong>
-                        </div>
-
-                        <div className="hr-chatbot-stat">
-                            <span>
-                                Leave
-                            </span>
-
-                            <strong>
-                                {
-                                    stats?.leaveCount ??
-                                    0
-                                }
-                            </strong>
-                        </div>
-                    </div>
-
-                    {stats?.attendancePercent !==
-                        undefined && (
-                        <div className="hr-chatbot-percentage">
-                            <div>
-                                <span>
-                                    Attendance
-                                </span>
-
-                                <strong>
-                                    {formatNumber(
-                                        stats.attendancePercent
-                                    )}
-                                    %
-                                </strong>
-                            </div>
-
-                            <div className="hr-chatbot-progress">
-                                <div
-                                    className="hr-chatbot-progress-bar"
-                                    style={{
-                                        width: `${percentage}%`,
-                                    }}
-                                />
-                            </div>
-                        </div>
-                    )}
-
-                    {stats?.totalWorkHours !==
-                        undefined && (
-                        <div className="hr-chatbot-work-hours">
-                            <Clock
-                                size={15}
-                            />
-
-                            <span>
-                                Total work hours:{' '}
-                                <strong>
-                                    {formatNumber(
-                                        stats.totalWorkHours
-                                    )}
-                                </strong>
-                            </span>
-                        </div>
-                    )}
-                </div>
-            );
-        };
-
-    /* ========================================================
-       DAILY RECORDS
-       ======================================================== */
-
-    const renderDailyRecords =
-        (data) => {
-            const records =
-                Array.isArray(
-                    data?.monthlyRecords
-                )
-                    ? data.monthlyRecords
-                    : Array.isArray(
-                          data?.weeklyRecords
-                      )
-                    ? data.weeklyRecords
-                    : Array.isArray(
-                          data?.records
-                      )
-                    ? data.records
-                    : [];
-
-            if (
-                records.length ===
-                0
-            ) {
-                return null;
-            }
-
-            return (
-                <div className="hr-chatbot-card hr-chatbot-records-card">
-                    <div className="hr-chatbot-card-title">
-                        <CalendarDays
-                            size={18}
-                        />
-
-                        <span>
-                            Attendance Records
-                        </span>
-                    </div>
-
-                    <div className="hr-chatbot-records-list">
-                        {records.map(
-                            (
-                                record,
-                                index
-                            ) => (
-                                <div
-                                    className="hr-chatbot-record-item"
-                                    key={
-                                        record?.date ||
-                                        index
-                                    }
-                                >
-                                    <div className="hr-chatbot-record-date">
-                                        <strong>
-                                            {formatDate(
-                                                record?.date
-                                            )}
-                                        </strong>
-
-                                        {record?.dayName && (
-                                            <span>
-                                                {
-                                                    record.dayName
-                                                }
-                                            </span>
-                                        )}
                                     </div>
 
-                                    <div className="hr-chatbot-record-status">
-                                        <span
-                                            className={`hr-chatbot-status ${getStatusClass(
-                                                record?.status
-                                            )}`}
-                                        >
-                                            {displayStatus(
-                                                record?.status
-                                            )}
+                                    <div className="hr-chatbot-input-footer">
+
+                                        <span>
+                                            Responses are powered by
+                                            your HRMS data
                                         </span>
+
+                                        <span>
+                                            {
+                                                message.length
+                                            }
+                                            /1000
+                                        </span>
+
                                     </div>
 
-                                    <div className="hr-chatbot-record-time">
-                                        {record?.checkIn && (
-                                            <span>
-                                                In:{' '}
-                                                {formatTime(
-                                                    record.checkIn
-                                                )}
-                                            </span>
-                                        )}
-
-                                        {record?.checkOut && (
-                                            <span>
-                                                Out:{' '}
-                                                {formatTime(
-                                                    record.checkOut
-                                                )}
-                                            </span>
-                                        )}
-                                    </div>
                                 </div>
-                            )
-                        )}
-                    </div>
-                </div>
-            );
-        };
 
-    /* ========================================================
-       DATA CARDS
-       ======================================================== */
-
-    const renderDataCards = (
-        message
-    ) => {
-        const data =
-            message?.data;
-
-        if (!data) {
-            return null;
-        }
-
-        return (
-            <>
-                {message.type ===
-                    'leave-balance' &&
-                    renderLeaveBalance(
-                        data
-                    )}
-
-                {message.type ===
-                    'training' &&
-                    renderTrainingCard(
-                        data
-                    )}
-
-                {message.type ===
-                    'recruitment' &&
-                    renderRecruitmentCard(
-                        data
-                    )}
-
-                {message.type ===
-                    'attendance' &&
-                    renderAttendanceCard(
-                        data
-                    )}
-
-                {renderAttendanceCard(
-                    data
-                )}
-
-                {renderMonthlyAttendance(
-                    data
-                )}
-
-                {renderDailyRecords(
-                    data
-                )}
-            </>
-        );
-    };
-
-    /* ========================================================
-       MESSAGE COMPONENT
-       ======================================================== */
-
-    const renderMessage = (
-        message
-    ) => {
-        const isUser =
-            message.sender ===
-            'user';
-
-        return (
-            <div
-                className={`hr-chatbot-message-row ${
-                    isUser
-                        ? 'hr-chatbot-message-user'
-                        : 'hr-chatbot-message-bot'
-                }`}
-                key={
-                    message.id
-                }
-            >
-                {!isUser && (
-                    <div className="hr-chatbot-avatar bot-avatar">
-                        <Bot
-                            size={17}
-                        />
-                    </div>
-                )}
-
-                <div
-                    className={`hr-chatbot-message ${
-                        isUser
-                            ? 'user-message'
-                            : 'bot-message'
-                    } ${
-                        message.type ===
-                        'error'
-                            ? 'error-message'
-                            : ''
-                    }`}
-                >
-                    <div className="hr-chatbot-message-content">
-                        {renderMessageText(
-                            formatText(
-                                message.text
-                            )
+                            </>
                         )}
 
-                        {!isUser &&
-                            renderDataCards(
-                                message
-                            )}
                     </div>
-
-                    {message.createdAt && (
-                        <div className="hr-chatbot-message-time">
-                            {new Date(
-                                message.createdAt
-                            ).toLocaleTimeString(
-                                'en-IN',
-                                {
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                }
-                            )}
-                        </div>
-                    )}
                 </div>
+            )}
+        </>
+    );
+}
 
-                {isUser && (
-                    <div className="hr-chatbot-avatar user-avatar">
-                        <UserRound
-                            size={17}
-                        />
-                    </div>
-                )}
-            </div>
+// ============================================================
+// TRAINING CARD
+// ============================================================
+
+function TrainingCard({ training }) {
+    const status =
+        getTrainingStatus(training);
+
+    const title =
+        getTrainingTitle(training);
+
+    const trainer =
+        getTrainer(training);
+
+    const score =
+        formatScore(training);
+
+    const meetingLink =
+        getTrainingLink(training);
+
+    const enrollmentStatus =
+        getEnrollmentStatus(training);
+
+    const category =
+        formatTrainingCategory(
+            training?.category
         );
-    };
 
-    /* ========================================================
-       TYPING
-       ======================================================== */
+    const mode =
+        formatTrainingMode(
+            training?.mode
+        );
 
-    const renderTyping =
-        () => (
-            <div className="hr-chatbot-message-row hr-chatbot-message-bot">
-                <div className="hr-chatbot-avatar bot-avatar">
-                    <Bot
-                        size={17}
+    const duration =
+        training?.durationHours ??
+        training?.duration ??
+        null;
+
+    const venue =
+        training?.venue ||
+        training?.location ||
+        null;
+
+    const description =
+        training?.description ||
+        training?.details ||
+        null;
+
+    const completed =
+        training?.completed === true ||
+        String(
+            training?.completionStatus ||
+            ''
+        ).toUpperCase() === 'COMPLETED' ||
+        status === 'COMPLETED';
+
+    return (
+        <div className="hr-chatbot-training-card">
+
+            {/* =================================================
+                CARD HEADER
+            ================================================== */}
+
+            <div className="hr-chatbot-training-card-header">
+
+                <div className="hr-chatbot-training-icon">
+                    <GraduationCap
+                        size={19}
                     />
                 </div>
 
-                <div className="hr-chatbot-message bot-message typing-message">
-                    <div className="hr-chatbot-typing">
-                        <span />
-                        <span />
-                        <span />
+                <div className="hr-chatbot-training-title-wrap">
+
+                    <div className="hr-chatbot-training-title">
+                        {title}
                     </div>
+
+                    <div className="hr-chatbot-training-category">
+                        {category}
+                    </div>
+
                 </div>
-            </div>
-        );
 
-    /* ========================================================
-       QUICK ACTION
-       ======================================================== */
-
-    const renderQuickAction =
-        (action) => {
-            const Icon =
-                action.icon ||
-                HelpCircle;
-
-            return (
-                <button
-                    type="button"
-                    className="hr-chatbot-quick-action"
-                    key={
-                        action.label
-                    }
-                    onClick={() =>
-                        handleQuickAction(
-                            action.message
-                        )
-                    }
-                    disabled={
-                        loading
-                    }
+                <span
+                    className={`hr-chatbot-training-status status-${String(
+                        status
+                    )
+                        .toLowerCase()
+                        .replace(/_/g, '-')}`}
                 >
-                    <Icon
-                        size={16}
+                    <CircleDot
+                        size={10}
                     />
 
-                    <span>
-                        {
-                            action.label
-                        }
+                    {formatTrainingStatus(
+                        status
+                    )}
+                </span>
+
+            </div>
+
+            {/* =================================================
+                DESCRIPTION
+            ================================================== */}
+
+            {description && (
+                <div className="hr-chatbot-training-description">
+                    {description}
+                </div>
+            )}
+
+            {/* =================================================
+                TRAINING DETAILS
+            ================================================== */}
+
+            <div className="hr-chatbot-training-details">
+
+                <div className="hr-chatbot-training-detail">
+
+                    <span className="hr-chatbot-training-detail-icon">
+                        <User
+                            size={13}
+                        />
                     </span>
 
-                    <ChevronRight
-                        size={14}
-                    />
-                </button>
-            );
-        };
+                    <div>
+                        <small>
+                            Trainer
+                        </small>
 
-    const quickActions =
-        QUICK_ACTIONS[
-            role
-        ] ||
-        QUICK_ACTIONS.EMPLOYEE;
+                        <strong>
+                            {trainer}
+                        </strong>
+                    </div>
 
-    /* ========================================================
-       CLOSED LAUNCHER
-       ======================================================== */
-
-    if (!open) {
-        return (
-            <button
-                type="button"
-                className="hr-chatbot-launcher"
-                onClick={() =>
-                    setOpen(true)
-                }
-                aria-label="Open HR Assistant"
-            >
-                <div className="hr-chatbot-launcher-icon">
-                    <Bot
-                        size={25}
-                    />
-
-                    <span className="hr-chatbot-online-dot" />
                 </div>
 
-                <div className="hr-chatbot-launcher-text">
+                <div className="hr-chatbot-training-detail">
+
+                    <span className="hr-chatbot-training-detail-icon">
+                        <BookOpen
+                            size={13}
+                        />
+                    </span>
+
+                    <div>
+                        <small>
+                            Mode
+                        </small>
+
+                        <strong>
+                            {mode}
+                        </strong>
+                    </div>
+
+                </div>
+
+                {duration !==
+                    null &&
+                    duration !==
+                    undefined && (
+                        <div className="hr-chatbot-training-detail">
+
+                            <span className="hr-chatbot-training-detail-icon">
+                                <Clock
+                                    size={13}
+                                />
+                            </span>
+
+                            <div>
+                                <small>
+                                    Duration
+                                </small>
+
+                                <strong>
+                                    {duration}{' '}
+                                    {Number(
+                                        duration
+                                    ) ===
+                                        1
+                                        ? 'hour'
+                                        : 'hours'}
+                                </strong>
+                            </div>
+
+                        </div>
+                    )}
+
+                {venue && (
+                    <div className="hr-chatbot-training-detail">
+
+                        <span className="hr-chatbot-training-detail-icon">
+                            <MapPin
+                                size={13}
+                            />
+                        </span>
+
+                        <div>
+                            <small>
+                                Venue
+                            </small>
+
+                            <strong>
+                                {venue}
+                            </strong>
+                        </div>
+
+                    </div>
+                )}
+
+            </div>
+
+            {/* =================================================
+                DATE SECTION
+            ================================================== */}
+
+            <div className="hr-chatbot-training-dates">
+
+                <div className="hr-chatbot-training-date">
+
+                    <Calendar
+                        size={14}
+                    />
+
+                    <div>
+                        <small>
+                            Starts
+                        </small>
+
+                        <strong>
+                            {formatDate(
+                                training?.startDate
+                            )}
+                        </strong>
+                    </div>
+
+                </div>
+
+                <div className="hr-chatbot-training-date-divider" />
+
+                <div className="hr-chatbot-training-date">
+
+                    <Calendar
+                        size={14}
+                    />
+
+                    <div>
+                        <small>
+                            Ends
+                        </small>
+
+                        <strong>
+                            {formatDate(
+                                training?.endDate
+                            )}
+                        </strong>
+                    </div>
+
+                </div>
+
+            </div>
+
+            {/* =================================================
+                ENROLLMENT / SCORE
+            ================================================== */}
+
+            {(enrollmentStatus ||
+                score !== null ||
+                completed) && (
+                    <div className="hr-chatbot-training-footer">
+
+                        {enrollmentStatus && (
+                            <div className="hr-chatbot-training-enrollment">
+
+                                <CheckCircle2
+                                    size={14}
+                                />
+
+                                <span>
+                                    {String(
+                                        enrollmentStatus
+                                    )
+                                        .replace(
+                                            /_/g,
+                                            ' '
+                                        )
+                                        .replace(
+                                            /\b\w/g,
+                                            (
+                                                char
+                                            ) =>
+                                                char.toUpperCase()
+                                        )}
+                                </span>
+
+                            </div>
+                        )}
+
+                        {completed && (
+                            <div className="hr-chatbot-training-completed">
+
+                                <CheckCircle2
+                                    size={14}
+                                />
+
+                                Completed
+
+                            </div>
+                        )}
+
+                        {score !== null && (
+                            <div className="hr-chatbot-training-score">
+
+                                <Award
+                                    size={14}
+                                />
+
+                                <span>
+                                    Score
+                                </span>
+
+                                <strong>
+                                    {score}
+                                </strong>
+
+                            </div>
+                        )}
+
+                    </div>
+                )}
+
+            {/* =================================================
+                COMPLETION DATE
+            ================================================== */}
+
+            {training?.completedDate && (
+                <div className="hr-chatbot-training-completed-date">
+
+                    <CheckCircle2
+                        size={13}
+                    />
+
+                    Completed on{' '}
                     <strong>
-                        HR Assistant
+                        {formatDate(
+                            training.completedDate
+                        )}
+                    </strong>
+
+                </div>
+            )}
+
+            {/* =================================================
+                FEEDBACK
+            ================================================== */}
+
+            {training?.feedback && (
+                <div className="hr-chatbot-training-feedback">
+
+                    <strong>
+                        Feedback
                     </strong>
 
                     <span>
-                        Ask HRMS AI
+                        {training.feedback}
                     </span>
+
                 </div>
-            </button>
-        );
-    }
+            )}
 
-    /* ========================================================
-       MINIMIZED
-       ======================================================== */
+            {/* =================================================
+                MEETING / TRAINING LINK
+            ================================================== */}
 
-    if (minimized) {
-        return (
-            <div
-                className={`hr-chatbot-minimized ${themeClass}`}
-            >
-                <button
-                    type="button"
-                    onClick={() =>
-                        setMinimized(
-                            false
-                        )
+            {meetingLink && (
+                <a
+                    href={
+                        meetingLink
                     }
-                    className="hr-chatbot-minimized-main"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hr-chatbot-training-link"
                 >
-                    <Bot
-                        size={20}
+                    <ExternalLink
+                        size={14}
                     />
 
-                    <span>
-                        HR Assistant
-                    </span>
-                </button>
+                    Open Training
 
-                <button
-                    type="button"
-                    onClick={() =>
-                        setOpen(false)
-                    }
-                    className="hr-chatbot-minimized-close"
-                    aria-label="Close HR Assistant"
-                >
-                    <X
-                        size={17}
-                    />
-                </button>
-            </div>
-        );
-    }
+                </a>
+            )}
 
-    /* ========================================================
-       FULL CHAT UI
-       ======================================================== */
+        </div>
+    );
+}
+
+// ============================================================
+// RECRUITMENT JOB CARD
+// ============================================================
+
+function RecruitmentJobCard({ job }) {
+    const status = getJobStatus(job);
+    const title = getJobTitle(job);
 
     return (
-        <div
-            className={`hr-chatbot-container ${themeClass}`}
-        >
-            <div className="hr-chatbot-window">
+        <div className="hr-chatbot-recruitment-card">
+            <div className="hr-chatbot-recruitment-card-header">
+                <div className="hr-chatbot-recruitment-icon">
+                    <BriefcaseBusiness size={19} />
+                </div>
 
-                {/* HEADER */}
-
-                <div className="hr-chatbot-header">
-                    <div className="hr-chatbot-header-left">
-                        <div className="hr-chatbot-header-avatar">
-                            <Bot
-                                size={22}
-                            />
-
-                            <span className="hr-chatbot-online-dot" />
-                        </div>
-
-                        <div className="hr-chatbot-header-info">
-                            <div className="hr-chatbot-header-title">
-                                <strong>
-                                    HR Assistant
-                                </strong>
-
-                                <Sparkles
-                                    size={14}
-                                />
-                            </div>
-
-                            <span>
-                                {role ===
-                                'ADMIN'
-                                    ? 'Admin Assistant'
-                                    : role ===
-                                      'HR'
-                                    ? 'HR Assistant'
-                                    : 'Employee Assistant'}
-                            </span>
-                        </div>
+                <div className="hr-chatbot-recruitment-title-wrap">
+                    <div className="hr-chatbot-recruitment-title">
+                        {title}
                     </div>
-
-                    <div className="hr-chatbot-header-actions">
-                        <button
-                            type="button"
-                            onClick={
-                                resetChat
-                            }
-                            aria-label="Reset chat"
-                            title="Reset chat"
-                        >
-                            <RotateCcw
-                                size={
-                                    17
-                                }
-                            />
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setMinimized(
-                                    true
-                                )
-                            }
-                            aria-label="Minimize"
-                            title="Minimize"
-                        >
-                            <Minimize2
-                                size={
-                                    18
-                                }
-                            />
-                        </button>
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setOpen(
-                                    false
-                                )
-                            }
-                            aria-label="Close"
-                            title="Close"
-                        >
-                            <X
-                                size={
-                                    19
-                                }
-                            />
-                        </button>
+                    <div className="hr-chatbot-recruitment-department">
+                        {job?.department || 'Not specified'}
                     </div>
                 </div>
 
-                {/* CONNECTION STATUS */}
+                <span
+                    className={`hr-chatbot-recruitment-status status-${status
+                        .toLowerCase()
+                        .replace(/_/g, '-')}`}
+                >
+                    <CircleDot size={10} />
+                    {formatPostingStatus(status)}
+                </span>
+            </div>
 
-                <div className="hr-chatbot-connection">
-                    <span className="hr-chatbot-connection-dot" />
-
-                    <span>
-                        Connected to your HRMS
-                    </span>
-
-                    <span className="hr-chatbot-role-badge">
-                        {role}
-                    </span>
+            <div className="hr-chatbot-recruitment-meta-grid">
+                <div className="hr-chatbot-recruitment-meta">
+                    <MapPin size={13} />
+                    <div>
+                        <small>Location</small>
+                        <strong>{job?.location || 'Not specified'}</strong>
+                    </div>
                 </div>
 
-                {/* MESSAGES */}
-
-                <div className="hr-chatbot-messages">
-                    {messages.map(
-                        renderMessage
-                    )}
-
-                    {loading &&
-                        renderTyping()}
-
-                    <div
-                        ref={
-                            messagesEndRef
-                        }
-                    />
+                <div className="hr-chatbot-recruitment-meta">
+                    <BriefcaseBusiness size={13} />
+                    <div>
+                        <small>Employment</small>
+                        <strong>
+                            {formatEmploymentType(job?.employmentType)}
+                        </strong>
+                    </div>
                 </div>
 
-                {/* QUICK ACTIONS */}
+                <div className="hr-chatbot-recruitment-meta">
+                    <User size={13} />
+                    <div>
+                        <small>Experience</small>
+                        <strong>
+                            {job?.experienceRequired || 'Not specified'}
+                        </strong>
+                    </div>
+                </div>
 
-                {messages.length <=
-                    2 &&
-                    !loading && (
-                        <div className="hr-chatbot-quick-actions">
-                            <div className="hr-chatbot-quick-title">
-                                <Sparkles
-                                    size={
-                                        14
-                                    }
-                                />
+                <div className="hr-chatbot-recruitment-meta">
+                    <WalletCards size={13} />
+                    <div>
+                        <small>Salary</small>
+                        <strong>
+                            {job?.salaryRange || 'Not specified'}
+                        </strong>
+                    </div>
+                </div>
+            </div>
 
-                                <span>
-                                    Quick
-                                    actions
-                                </span>
-                            </div>
+            {job?.applicationDeadline && (
+                <div className="hr-chatbot-recruitment-deadline">
+                    <Calendar size={14} />
+                    <span>Application deadline</span>
+                    <strong>{formatDate(job.applicationDeadline)}</strong>
+                </div>
+            )}
 
-                            <div className="hr-chatbot-quick-grid">
-                                {quickActions.map(
-                                    renderQuickAction
-                                )}
-                            </div>
+            {job?.description && (
+                <div className="hr-chatbot-recruitment-section">
+                    <small>Description</small>
+                    <p>{job.description}</p>
+                </div>
+            )}
+
+            {job?.requirements && (
+                <div className="hr-chatbot-recruitment-section">
+                    <small>Requirements</small>
+                    <p>{job.requirements}</p>
+                </div>
+            )}
+
+            {job?.applicationCount !== null &&
+                job?.applicationCount !== undefined && (
+                    <div className="hr-chatbot-recruitment-footer">
+                        <span>Applications received</span>
+                        <strong>
+                            {formatNumber(job.applicationCount)}
+                        </strong>
+                    </div>
+                )}
+        </div>
+    );
+}
+
+// ============================================================
+// RECRUITMENT REFERRAL CARD
+// ============================================================
+
+function RecruitmentReferralCard({ referral }) {
+    return (
+        <div className="hr-chatbot-referral-card">
+            <div className="hr-chatbot-referral-header">
+                <div className="hr-chatbot-referral-avatar">
+                    <UserRound size={17} />
+                </div>
+
+                <div className="hr-chatbot-referral-title-wrap">
+                    <div className="hr-chatbot-referral-name">
+                        {referral?.candidateName || 'Candidate'}
+                    </div>
+                    <div className="hr-chatbot-referral-position">
+                        {referral?.jobTitle || 'Job opening'}
+                    </div>
+                </div>
+
+                <span className="hr-chatbot-referral-status">
+                    <CircleDot size={9} />
+                    {formatApplicationStatus(referral?.status)}
+                </span>
+            </div>
+
+            <div className="hr-chatbot-referral-details">
+                <div className="hr-chatbot-referral-detail">
+                    <User size={13} />
+                    <div>
+                        <small>Experience</small>
+                        <strong>
+                            {formatExperience(
+                                referral?.experienceYears,
+                                referral?.experienceMonths
+                            )}
+                        </strong>
+                    </div>
+                </div>
+
+                {referral?.currentCompany && (
+                    <div className="hr-chatbot-referral-detail">
+                        <BriefcaseBusiness size={13} />
+                        <div>
+                            <small>Current company</small>
+                            <strong>{referral.currentCompany}</strong>
                         </div>
-                    )}
-
-                {/* ERROR */}
-
-                {error && (
-                    <div className="hr-chatbot-error-banner">
-                        <span>
-                            {error}
-                        </span>
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                setError(
-                                    ''
-                                )
-                            }
-                        >
-                            <X
-                                size={
-                                    14
-                                }
-                            />
-                        </button>
                     </div>
                 )}
 
-                {/* INPUT */}
-
-                <div className="hr-chatbot-input-area">
-                    <div className="hr-chatbot-input-wrapper">
-                        <textarea
-                            ref={
-                                inputRef
-                            }
-                            value={
-                                input
-                            }
-                            onChange={(
-                                event
-                            ) =>
-                                setInput(
-                                    event
-                                        .target
-                                        .value
-                                )
-                            }
-                            onKeyDown={
-                                handleKeyDown
-                            }
-                            placeholder={
-                                role ===
-                                'EMPLOYEE'
-                                    ? 'Ask about your attendance, leave, payslip...'
-                                    : 'Ask about employees, attendance, leave, recruitment...'
-                            }
-                            rows={1}
-                            disabled={
-                                loading
-                            }
-                            aria-label="Ask HR Assistant"
-                            id="hr-chatbot-message"
-                            name="hrChatbotMessage"
-                        />
-
-                        <button
-                            type="button"
-                            onClick={() =>
-                                sendMessage()
-                            }
-                            disabled={
-                                loading ||
-                                !input.trim()
-                            }
-                            className="hr-chatbot-send"
-                            aria-label="Send message"
-                            title="Send"
-                        >
-                            <Send
-                                size={
-                                    18
-                                }
-                            />
-                        </button>
+                {referral?.interviewDate && (
+                    <div className="hr-chatbot-referral-detail">
+                        <Calendar size={13} />
+                        <div>
+                            <small>Interview</small>
+                            <strong>
+                                {formatDate(referral.interviewDate)}
+                            </strong>
+                        </div>
                     </div>
+                )}
 
-                    <div className="hr-chatbot-input-hint">
-                        <span>
-                            Press Enter
-                            to send
-                        </span>
-
-                        <span>
-                            HRMS AI
-                        </span>
+                <div className="hr-chatbot-referral-detail">
+                    <Clock size={13} />
+                    <div>
+                        <small>Applied</small>
+                        <strong>
+                            {formatDateTime(referral?.appliedAt)}
+                        </strong>
                     </div>
                 </div>
             </div>
+
+            {referral?.interviewMode && (
+                <div className="hr-chatbot-referral-footer">
+                    Interview mode:
+                    <strong>
+                        {formatEmploymentType(referral.interviewMode)}
+                    </strong>
+                </div>
+            )}
         </div>
+    );
+}
+
+// ============================================================
+// LEAVE NAME FORMATTER
+// ============================================================
+
+function formatLeaveName(
+    leaveType
+) {
+    if (!leaveType) {
+        return 'Leave';
+    }
+
+    switch (
+    String(
+        leaveType
+    ).toUpperCase()
+    ) {
+        case 'ANNUAL':
+            return 'Annual';
+
+        case 'SICK':
+            return 'Sick';
+
+        case 'CASUAL':
+            return 'Casual';
+
+        case 'PATERNITY':
+            return 'Paternity';
+
+        case 'MATERNITY':
+            return 'Maternity';
+
+        case 'UNPAID':
+            return 'Unpaid';
+
+        default:
+            return leaveType;
+    }
+}
+
+// ============================================================
+// NUMBER FORMATTER
+// ============================================================
+
+function formatNumber(
+    value
+) {
+    if (
+        value === null ||
+        value === undefined
+    ) {
+        return '0';
+    }
+
+    const number =
+        Number(value);
+
+    if (
+        Number.isNaN(number)
+    ) {
+        return String(
+            value
+        );
+    }
+
+    if (
+        Number.isInteger(
+            number
+        )
+    ) {
+        return String(
+            number
+        );
+    }
+
+    return number.toFixed(
+        2
     );
 }
