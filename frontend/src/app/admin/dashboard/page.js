@@ -579,7 +579,7 @@ export default function AdminDashboard() {
           subtitle={`${inactiveEmployees} inactive accounts`}
           icon={<Activity size={22} />}
           tone="purple"
-          
+
         />
       </section>
 
@@ -1429,7 +1429,7 @@ const styles = `
     "Segoe UI",
     sans-serif;
 
-  font-size: 14px;
+  font-size: 2px;
 }
 
 .premium-shell *,
@@ -1510,7 +1510,7 @@ const styles = `
 
   color: #818cf8;
 
-  font-size: 12px;
+  font-size: 10px;
 
   font-weight: 800;
 
@@ -1537,7 +1537,7 @@ const styles = `
 .premium-header h1 {
   margin: 10px 0 7px;
 
-  font-size: 34px;
+  font-size: 27px;
 
   line-height: 1.15;
 
@@ -1551,7 +1551,7 @@ const styles = `
 
   color: var(--p-muted);
 
-  font-size: 15px;
+  font-size: 12px;
 
   line-height: 1.6;
 }
@@ -1591,7 +1591,7 @@ const styles = `
 
   color: var(--p-muted);
 
-  font-size: 13px;
+  font-size: 10px;
 
   font-weight: 600;
 
@@ -1747,7 +1747,7 @@ const styles = `
 
   border-radius: 8px;
 
-  font-size: 12px;
+  font-size: 10px;
 
   font-weight: 800;
 
@@ -1760,7 +1760,7 @@ const styles = `
 .stat-value {
   margin-top: 18px;
 
-  font-size: 32px;
+  font-size: 26px;
 
   line-height: 1;
 
@@ -1772,7 +1772,7 @@ const styles = `
 .stat-title {
   margin-top: 8px;
 
-  font-size: 15px;
+  font-size: 12px;
 
   font-weight: 700;
 }
@@ -1782,7 +1782,7 @@ const styles = `
 
   color: var(--p-muted);
 
-  font-size: 12px;
+  font-size: 10px;
 
   line-height: 1.5;
 }
@@ -1861,7 +1861,7 @@ const styles = `
   margin:
     7px 0 5px;
 
-  font-size: 21px;
+  font-size: 17px;
 
   line-height: 1.25;
 
@@ -1875,7 +1875,7 @@ const styles = `
 
   color: var(--p-muted);
 
-  font-size: 13px;
+  font-size: 10px;
 
   line-height: 1.5;
 }
@@ -1895,7 +1895,7 @@ const styles = `
 
   cursor: pointer;
 
-  font-size: 13px;
+  font-size: 10px;
 
   font-weight: 700;
 
@@ -1990,7 +1990,7 @@ const styles = `
 }
 
 .ring-center strong {
-  font-size: 29px;
+  font-size: 23px;
 
   line-height: 1;
 
@@ -2002,7 +2002,7 @@ const styles = `
 
   color: var(--p-muted);
 
-  font-size: 11px;
+  font-size: 9px;
 
   font-weight: 700;
 
@@ -2034,7 +2034,7 @@ const styles = `
 }
 
 .attendance-stat strong {
-  font-size: 19px;
+  font-size: 15px;
 
   line-height: 1.1;
 
@@ -2044,7 +2044,7 @@ const styles = `
 .attendance-stat small {
   color: var(--p-muted);
 
-  font-size: 12px;
+  font-size: 10px;
 
   margin-top: 4px;
 }
@@ -2096,13 +2096,13 @@ const styles = `
 
   color: var(--p-muted);
 
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .attendance-health strong {
   color: var(--p-text);
 
-  font-size: 14px;
+  font-size: 11px;
 }
 
 .mini-bar {
@@ -2244,7 +2244,7 @@ const styles = `
 .quick-action strong {
   display: block;
 
-  font-size: 14px;
+  font-size: 11px;
 
   line-height: 1.3;
 
@@ -2258,7 +2258,7 @@ const styles = `
 
   color: var(--p-muted);
 
-  font-size: 12px;
+  font-size: 10px;
 
   line-height: 1.4;
 
@@ -2320,7 +2320,7 @@ const styles = `
 
   flex-shrink: 0;
 
-  font-size: 12px;
+  font-size: 10px;
 
   font-weight: 800;
 }
@@ -2365,7 +2365,7 @@ const styles = `
 
 .leave-main strong,
 .activity-main strong {
-  font-size: 14px;
+  font-size: 11px;
 
   line-height: 1.35;
 
@@ -2378,7 +2378,7 @@ const styles = `
 
   color: var(--p-muted);
 
-  font-size: 12px;
+  font-size: 10px;
 
   line-height: 1.5;
 
@@ -2396,7 +2396,7 @@ const styles = `
 
   color: #64748b;
 
-  font-size: 11px;
+  font-size: 9px;
 
   line-height: 1.4;
 
@@ -2425,7 +2425,7 @@ const styles = `
 
   border-radius: 8px;
 
-  font-size: 11px;
+  font-size: 9px;
 
   line-height: 1.2;
 
@@ -2509,7 +2509,7 @@ const styles = `
 
   cursor: pointer;
 
-  font-size: 12px;
+  font-size: 10px;
 
   font-weight: 800;
 
@@ -2556,7 +2556,7 @@ const styles = `
 .actioned-label {
   color: var(--p-muted);
 
-  font-size: 12px;
+  font-size: 10px;
 
   font-weight: 600;
 
@@ -2642,7 +2642,7 @@ const styles = `
 
   background: transparent;
 
-  font-size: 13px;
+  font-size: 10px;
 }
 
 .search-box input::placeholder {
@@ -2679,7 +2679,7 @@ const styles = `
 
   text-align: left;
 
-  font-size: 11px;
+  font-size: 9px;
 
   letter-spacing: 1px;
 
@@ -2695,7 +2695,7 @@ const styles = `
 
   color: #cbd5e1;
 
-  font-size: 13px;
+  font-size: 10px;
 
   line-height: 1.5;
 }
@@ -2723,7 +2723,7 @@ const styles = `
 
   color: var(--p-text);
 
-  font-size: 14px;
+  font-size: 11px;
 
   line-height: 1.35;
 
@@ -2737,7 +2737,7 @@ const styles = `
 
   color: #64748b;
 
-  font-size: 11px;
+  font-size: 9px;
 
   line-height: 1.4;
 }
@@ -2750,7 +2750,7 @@ const styles = `
 
   border-radius: 7px;
 
-  font-size: 11px;
+  font-size: 9px;
 
   line-height: 1.2;
 
@@ -2824,7 +2824,7 @@ const styles = `
 
   color: #64748b;
 
-  font-size: 12px;
+  font-size: 10px;
 }
 
 .table-footer button {
@@ -2842,7 +2842,7 @@ const styles = `
 
   cursor: pointer;
 
-  font-size: 12px;
+  font-size: 10px;
 
   font-weight: 800;
 }
@@ -2858,7 +2858,7 @@ const styles = `
 
   color: #64748b;
 
-  font-size: 13px;
+  font-size: 10px;
 }
 
 /* =========================================================
@@ -2907,7 +2907,7 @@ const styles = `
 }
 
 .empty-state strong {
-  font-size: 15px;
+  font-size: 12px;
 
   line-height: 1.4;
 
@@ -2919,7 +2919,7 @@ const styles = `
 
   color: #64748b;
 
-  font-size: 12px;
+  font-size: 10px;
 
   line-height: 1.5;
 }
@@ -2982,7 +2982,7 @@ const styles = `
 }
 
 .insight-bar strong {
-  font-size: 13px;
+  font-size: 10px;
 
   line-height: 1.3;
 
@@ -2994,7 +2994,7 @@ const styles = `
 
   color: var(--p-muted);
 
-  font-size: 12px;
+  font-size: 10px;
 
   line-height: 1.5;
 }
@@ -3014,7 +3014,7 @@ const styles = `
 
   cursor: pointer;
 
-  font-size: 12px;
+  font-size: 10px;
 
   font-weight: 800;
 
@@ -3070,7 +3070,7 @@ const styles = `
 }
 
 .premium-loading strong {
-  font-size: 16px;
+  font-size: 13px;
 
   line-height: 1.3;
 }
@@ -3078,7 +3078,7 @@ const styles = `
 .premium-loading span {
   color: var(--p-muted);
 
-  font-size: 12px;
+  font-size: 10px;
 
   line-height: 1.4;
 }
@@ -3156,7 +3156,7 @@ const styles = `
 
     padding: 20px;
 
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .premium-header {
@@ -3164,13 +3164,13 @@ const styles = `
   }
 
   .premium-header h1 {
-    font-size: 29px;
+    font-size: 23px;
 
     letter-spacing: -0.8px;
   }
 
   .premium-header p {
-    font-size: 14px;
+    font-size: 11px;
   }
 
   .stats-grid {
@@ -3186,7 +3186,7 @@ const styles = `
   }
 
   .stat-value {
-    font-size: 30px;
+    font-size: 24px;
   }
 
   .quick-actions {
@@ -3209,7 +3209,7 @@ const styles = `
   }
 
   .ring-center strong {
-    font-size: 25px;
+    font-size: 20px;
   }
 
   .panel-header {
@@ -3217,11 +3217,11 @@ const styles = `
   }
 
   .panel-header h2 {
-    font-size: 19px;
+    font-size: 15px;
   }
 
   .panel-header p {
-    font-size: 12px;
+    font-size: 10px;
   }
 
   .leave-item,
@@ -3277,11 +3277,11 @@ const styles = `
   }
 
   .premium-header h1 {
-    font-size: 26px;
+    font-size: 21px;
   }
 
   .date-pill {
-    font-size: 12px;
+    font-size: 10px;
   }
 
   .attendance-overview {
