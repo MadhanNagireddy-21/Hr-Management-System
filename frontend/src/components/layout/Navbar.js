@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { getUnreadCount } from '@/lib/employeeApi';
 import { getAdminUnreadCount } from '@/lib/adminApi';
-import HRChatbot from '../chatbot/HRChatbot';
+
 import {
   Home,
   Calendar,
@@ -864,7 +864,7 @@ export default function Navbar() {
           </div>
         </div>
       </div>
-      <HRChatbot/>
+      
     </>
   );
 }
