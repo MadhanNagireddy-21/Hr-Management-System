@@ -40,9 +40,9 @@ public class SecurityConfig {
     // ============================================================
 
     /*
-     * Production:
+     * Production frontend:
      *
-     * APP_FRONTEND_URL=https://hrms.saitejainfotechprivatelimited.com
+     * https://hrms.saitejainfotechprivatelimited.com
      *
      * Spring property:
      *
@@ -331,8 +331,6 @@ public class SecurityConfig {
         // ========================================================
 
         /*
-         * IMPORTANT:
-         *
          * allowedOriginPatterns is used instead of
          * allowedOrigins so production origin handling is
          * more tolerant.
