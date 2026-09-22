@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useSelector } from "react-redux";
 import './HRChatbot.css';
 import {
@@ -566,10 +566,7 @@ export default function HRChatbot({
   const isAdmin = role === "ADMIN" || role === "HR";
   const employeeName = user?.name?.split(" ")[0] || "there";
 
-  const quickActions = useMemo(
-    () => (isAdmin ? ADMIN_QUICK_ACTIONS : EMPLOYEE_QUICK_ACTIONS),
-    [isAdmin]
-  );
+  const quickActions = isAdmin ? ADMIN_QUICK_ACTIONS : EMPLOYEE_QUICK_ACTIONS;
 
   const [isOpen, setIsOpen] = useState(defaultOpen);
   const [isMinimized, setIsMinimized] = useState(false);
@@ -595,14 +592,20 @@ export default function HRChatbot({
   // Uses the shared axios instance (lib/axios.js): it already injects the
   // JWT from sessionStorage, points at NEXT_PUBLIC_API_BASE_URL, and hands
   // 401s off to the app's existing session-expiry handling.
-  const callChatbot = useCallback(async (text) => {
+  //
+  // These are plain functions rather than manually useCallback-wrapped:
+  // the project has the React Compiler enabled, which auto-memoizes
+  // function values itself and errors on hand-written dependency arrays
+  // it can't reconcile with what it infers (react-hooks/preserve-manual-
+  // memoization). Letting the compiler handle memoization avoids that.
+  const callChatbot = async (text) => {
     const res = await api.post("/api/chatbot/message", { message: text });
     const payload = res.data;
     // Backend wraps the MessageResponse in an ApiResponse envelope.
     return payload && payload.data ? payload.data : payload;
-  }, []);
+  };
 
-  const pushBotMessage = useCallback((data) => {
+  const pushBotMessage = (data) => {
     setMessages((prev) => [
       ...prev,
       {
@@ -613,34 +616,31 @@ export default function HRChatbot({
         timestamp: new Date(),
       },
     ]);
-  }, []);
+  };
 
-  const sendToBot = useCallback(
-    async (text) => {
-      setLoading(true);
-      setError(null);
-      try {
-        const data = await callChatbot(text);
-        pushBotMessage(data);
-      } catch (err) {
-        const status = err?.response?.status;
+  const sendToBot = async (text) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await callChatbot(text);
+      pushBotMessage(data);
+    } catch (err) {
+      const status = err?.response?.status;
 
-        // A 401 is already handled globally by the axios response
-        // interceptor (session-expired toast + redirect to login),
-        // so avoid piling on a second, confusing error here.
-        if (status !== 401) {
-          setError("The HR Assistant is unreachable right now. Please try again.");
-          pushBotMessage({
-            reply: "I'm having trouble reaching the HR system right now. Please try again in a moment.",
-            type: "TEXT",
-          });
-        }
-      } finally {
-        setLoading(false);
+      // A 401 is already handled globally by the axios response
+      // interceptor (session-expired toast + redirect to login),
+      // so avoid piling on a second, confusing error here.
+      if (status !== 401) {
+        setError("The HR Assistant is unreachable right now. Please try again.");
+        pushBotMessage({
+          reply: "I'm having trouble reaching the HR system right now. Please try again in a moment.",
+          type: "TEXT",
+        });
       }
-    },
-    [callChatbot, pushBotMessage]
-  );
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Greet once, the first time the window is opened.
   useEffect(() => {
@@ -648,17 +648,18 @@ export default function HRChatbot({
       hasGreeted.current = true;
       sendToBot("hi");
     }
-  }, [isOpen, sendToBot]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   // Clears the conversation and re-greets, as a fresh session.
-  const handleRefresh = useCallback(() => {
+  const handleRefresh = () => {
     if (loading) return;
     setMessages([]);
     setInput("");
     setError(null);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
     sendToBot("hi");
-  }, [loading, sendToBot]);
+  };
 
   const handleSend = (overrideText) => {
     const text = (overrideText ?? input).trim();
