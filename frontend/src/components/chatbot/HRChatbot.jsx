@@ -1,7 +1,8 @@
+'use client';
 
-import './HRChatbot.css';
 import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useSelector } from "react-redux";
+import './HRChatbot.css';
 import {
   Bot,
   X,
