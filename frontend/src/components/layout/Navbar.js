@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { getUnreadCount } from '@/lib/employeeApi';
 import { getAdminUnreadCount } from '@/lib/adminApi';
-
+import HRChatbot from '../chatbot/HRChatbot';
 import {
   Home,
   Calendar,
@@ -192,10 +192,10 @@ export default function Navbar() {
 
   const filtered = search.trim()
     ? allItems.filter((item) =>
-        item.label
-          .toLowerCase()
-          .includes(search.toLowerCase())
-      )
+      item.label
+        .toLowerCase()
+        .includes(search.toLowerCase())
+    )
     : [];
 
   const handleSearchSelect = (path) => {
@@ -450,7 +450,7 @@ export default function Navbar() {
                             cursor: 'pointer',
                             borderBottom:
                               i <
-                              filtered.length - 1
+                                filtered.length - 1
                                 ? isDark
                                   ? '1px solid #1E293B'
                                   : '1px solid #f1f5f9'
@@ -461,24 +461,24 @@ export default function Navbar() {
                                   ? '#1E293B'
                                   : '#eff6ff'
                                 : isDark
-                                ? '#111827'
-                                : 'white',
+                                  ? '#111827'
+                                  : 'white',
                             transition:
                               'background 0.15s',
                           }}
                           onMouseEnter={(e) =>
-                            (e.currentTarget.style.background =
-                              isDark
-                                ? '#1E293B'
-                                : '#f8fafc')
+                          (e.currentTarget.style.background =
+                            isDark
+                              ? '#1E293B'
+                              : '#f8fafc')
                           }
                           onMouseLeave={(e) =>
-                            (e.currentTarget.style.background =
-                              pathname === item.path
-                                ? isDark
-                                  ? '#1E293B'
-                                  : '#eff6ff'
-                                : isDark
+                          (e.currentTarget.style.background =
+                            pathname === item.path
+                              ? isDark
+                                ? '#1E293B'
+                                : '#eff6ff'
+                              : isDark
                                 ? '#111827'
                                 : 'white')
                           }
@@ -489,8 +489,8 @@ export default function Navbar() {
                               pathname === item.path
                                 ? accentColor
                                 : isDark
-                                ? '#94a3b8'
-                                : '#64748b'
+                                  ? '#94a3b8'
+                                  : '#64748b'
                             }
                             strokeWidth={2}
                           />
@@ -605,12 +605,12 @@ export default function Navbar() {
                                 : 'none',
                           }}
                           onMouseEnter={(e) =>
-                            (e.currentTarget.style.opacity =
-                              '0.7')
+                          (e.currentTarget.style.opacity =
+                            '0.7')
                           }
                           onMouseLeave={(e) =>
-                            (e.currentTarget.style.opacity =
-                              '1')
+                          (e.currentTarget.style.opacity =
+                            '1')
                           }
                         >
                           <Icon
@@ -670,8 +670,8 @@ export default function Navbar() {
               color: isSessionWarning
                 ? '#ef4444'
                 : isDark
-                ? '#e2e8f0'
-                : '#334155',
+                  ? '#e2e8f0'
+                  : '#334155',
               fontSize: '12px',
               fontWeight: '700',
               whiteSpace: 'nowrap',
@@ -763,35 +763,35 @@ export default function Navbar() {
             style={{
               background: isDark
                 ? (
-                    user?.role === 'ADMIN'
-                      ? 'rgba(59, 130, 246, 0.15)'
-                      : user?.role === 'HR'
+                  user?.role === 'ADMIN'
+                    ? 'rgba(59, 130, 246, 0.15)'
+                    : user?.role === 'HR'
                       ? 'rgba(168, 85, 247, 0.15)'
                       : 'rgba(16, 185, 129, 0.15)'
-                  )
+                )
                 : (
-                    user?.role === 'ADMIN'
-                      ? '#dbeafe'
-                      : user?.role === 'HR'
+                  user?.role === 'ADMIN'
+                    ? '#dbeafe'
+                    : user?.role === 'HR'
                       ? '#fdf4ff'
                       : '#f0fdf4'
-                  ),
+                ),
 
               color: isDark
                 ? (
-                    user?.role === 'ADMIN'
-                      ? '#60a5fa'
-                      : user?.role === 'HR'
+                  user?.role === 'ADMIN'
+                    ? '#60a5fa'
+                    : user?.role === 'HR'
                       ? '#c084fc'
                       : '#34d399'
-                  )
+                )
                 : (
-                    user?.role === 'ADMIN'
-                      ? '#1d4ed8'
-                      : user?.role === 'HR'
+                  user?.role === 'ADMIN'
+                    ? '#1d4ed8'
+                    : user?.role === 'HR'
                       ? '#9333ea'
                       : '#16a34a'
-                  ),
+                ),
 
               padding: '4px 10px',
               borderRadius: '20px',
@@ -864,7 +864,7 @@ export default function Navbar() {
           </div>
         </div>
       </div>
-      
+      <HRChatbot />
     </>
   );
 }
