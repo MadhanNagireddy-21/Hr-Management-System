@@ -317,18 +317,43 @@ export default function EmployeeAttendanceModal({ employeeId, asOfDate, onClose 
                                 max={todayStr}
                                 onChange={(e) => {
                                     const v = e.target.value;
+
                                     setFromDate(v > todayStr ? todayStr : v);
+
+                                    // If To Date is before the new From Date,
+                                    // set To Date to the same date.
+                                    if (toDate && v > toDate) {
+                                        setToDate(v);
+                                    }
                                 }}
                                 style={dateFieldStyle}
                             />
-                            <span style={{ fontSize: '12px', color: '#94a3b8' }}>to</span>
+
+                            <span style={{ fontSize: '12px', color: '#94a3b8' }}>
+                                to
+                            </span>
+
                             <input
                                 type="date"
                                 value={toDate}
+                                min={fromDate || ''}
                                 max={todayStr}
                                 onChange={(e) => {
                                     const v = e.target.value;
-                                    setToDate(v > todayStr ? todayStr : v);
+
+                                    // Do not allow To Date before From Date
+                                    if (fromDate && v < fromDate) {
+                                        setToDate(fromDate);
+                                        return;
+                                    }
+
+                                    // Do not allow future dates
+                                    if (v > todayStr) {
+                                        setToDate(todayStr);
+                                        return;
+                                    }
+
+                                    setToDate(v);
                                 }}
                                 style={dateFieldStyle}
                             />
