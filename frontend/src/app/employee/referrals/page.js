@@ -204,9 +204,9 @@ export default function MyReferrals() {
             const blobUrl = window.URL.createObjectURL(blob);
 
             if (win) {
-                win.location.href = blobUrl;
+                win.location.replace(blobUrl);
             } else {
-                window.location.href = blobUrl;
+                window.location.assign(blobUrl);
             }
 
             setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60000);
