@@ -3,6 +3,17 @@
    Design language: "ops console / staff badge"
    Navy base, role-coded accent (Employee = blue, HR = amber,
    Admin = plum), quiet surfaces, one motion moment on open.
+
+   FIXES IN THIS VERSION
+   - Launcher + window z-index raised so dashboard sidebars,
+     sticky headers and bottom navs can't cover them.
+   - Launcher is a compact round button that auto-tucks to the
+     screen edge, so the content behind it stays selectable.
+   - Role themes (Employee / HR / Admin) re-tint via colour tokens.
+   - Role accents now apply to the launcher itself
+     (.hr-chatbot-launcher.role-hr / .role-admin), because the
+     launcher is NOT a child of .hr-chatbot-wrapper.
+   - Launcher online-dot border follows the role colour.
    ============================================================ */
 
 .hr-chatbot-launcher,
@@ -106,23 +117,34 @@
 
 /* ============================================================
    LAUNCHER
+   Compact round button so it covers as little of the page as
+   possible. The label slides out on hover/focus, and after a few
+   seconds the button tucks against the screen edge (only a small
+   tab stays visible) so the content behind it can be clicked and
+   selected. Hover/focus/tap brings it back out.
+   Tune with: --hrc-launcher-right / --hrc-launcher-bottom
    ============================================================ */
 
 .hr-chatbot-launcher {
     position: fixed;
-    right: 28px;
-    bottom: 28px;
-    z-index: 60;
+    right: var(--hrc-launcher-right, 20px);
+    bottom: var(--hrc-launcher-bottom, 20px);
+    z-index: 9998;
     display: inline-flex;
     align-items: center;
-    gap: 10px;
-    padding: 12px 20px 12px 14px;
+    gap: 0;
+    padding: 9px;
     border: 1px solid var(--hrc-navy-strong);
     border-radius: var(--hrc-radius-pill);
     background: linear-gradient(155deg, var(--hrc-navy) 0%, var(--hrc-navy-strong) 100%);
     color: #fff;
     box-shadow: var(--hrc-shadow-launcher);
-    transition: transform 0.18s ease, box-shadow 0.18s ease;
+    cursor: pointer;
+    translate: 0 0;
+    transition: transform 0.18s ease, box-shadow 0.18s ease,
+        translate 0.35s cubic-bezier(0.16, 1, 0.3, 1), gap 0.2s ease;
+    /* after 6s, tuck to the edge so the page behind is usable */
+    animation: hrc-autodock 0.45s cubic-bezier(0.16, 1, 0.3, 1) 6s forwards;
 }
 
 .hr-chatbot-launcher.dark {
@@ -130,7 +152,11 @@
     border-color: #34445c;
 }
 
-.hr-chatbot-launcher:hover {
+.hr-chatbot-launcher:hover,
+.hr-chatbot-launcher:focus-visible {
+    animation: none;
+    translate: 0 0;
+    gap: 10px;
     transform: translateY(-2px);
     box-shadow: 0 16px 34px -10px rgba(20, 28, 43, 0.45);
 }
@@ -142,6 +168,23 @@
 
 .hr-chatbot-launcher:active {
     transform: translateY(0);
+}
+
+/* manual dock: add the "docked" class from your component if you prefer JS control */
+.hr-chatbot-launcher.docked {
+    animation: none;
+    translate: calc(100% - 20px) 0;
+}
+
+.hr-chatbot-launcher.docked:hover,
+.hr-chatbot-launcher.docked:focus-visible {
+    translate: 0 0;
+}
+
+@keyframes hrc-autodock {
+    to {
+        translate: calc(100% - 20px) 0;
+    }
 }
 
 .hr-chatbot-launcher-glow {
@@ -162,28 +205,42 @@
     position: relative;
     display: grid;
     place-items: center;
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.14);
 }
 
 .hr-chatbot-online-dot {
     position: absolute;
-    top: 8px;
-    right: 8px;
-    width: 8px;
-    height: 8px;
+    top: 0;
+    right: 0;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
     background: #43c98a;
     border: 2px solid var(--hrc-navy-strong);
     animation: hrc-pulse 2.2s ease-in-out infinite;
 }
 
+/* label is hidden until hover/focus */
 .hr-chatbot-launcher-text {
+    max-width: 0;
+    opacity: 0;
+    overflow: hidden;
+    white-space: nowrap;
     font-size: 13.5px;
     font-weight: 600;
     letter-spacing: 0.01em;
+    transition: max-width 0.25s ease, opacity 0.2s ease, margin 0.2s ease;
+}
+
+.hr-chatbot-launcher:hover .hr-chatbot-launcher-text,
+.hr-chatbot-launcher:focus-visible .hr-chatbot-launcher-text {
+    max-width: 170px;
+    opacity: 1;
+    margin-right: 8px;
 }
 
 @keyframes hrc-pulse {
@@ -206,7 +263,7 @@
     position: fixed;
     right: 24px;
     bottom: 24px;
-    z-index: 70;
+    z-index: 9999;
     width: 400px;
     max-width: calc(100vw - 32px);
     height: min(640px, calc(100vh - 48px));
@@ -1426,67 +1483,133 @@
 }
 
 /* ============================================================
-   ROLE ACCENTS
-   Applied by adding a role class ("role-employee" / "role-hr" /
-   "role-admin") on .hr-chatbot-wrapper alongside the theme class,
-   e.g. className={`hr-chatbot-wrapper role-${role.toLowerCase()}`}
-   Re-tints header, role pill, avatars and the send button per role.
+   ROLE THEMES  (Employee = blue, HR = amber, Admin = plum)
+   Put the role class on BOTH the launcher and the wrapper,
+   next to the theme class:
+
+     <button className={`hr-chatbot-launcher role-${role.toLowerCase()} ${theme}`}>
+     <div    className={`hr-chatbot-wrapper  role-${role.toLowerCase()} ${theme}`}>
+
+   Each role simply re-points the base colour tokens, so the header,
+   launcher, bubbles, send button, quick actions, links, focus rings
+   and the security strip all re-tint together. The launcher is a
+   sibling of the wrapper, which is why it needs the class too.
    ============================================================ */
 
+/* ---- Employee (blue) is the default token set ---- */
+
+/* ---- HR (amber) ---- */
+.hr-chatbot-launcher.role-hr,
 .hr-chatbot-wrapper.role-hr {
-    --hrc-accent: var(--hrc-amber);
+    --hrc-navy: #a56a1c;
+    --hrc-navy-strong: #7a4d15;
+    --hrc-navy-soft: #fbf1de;
+    --hrc-accent: #a56a1c;
+    --hrc-accent-soft: #fbf1de;
 }
 
+.hr-chatbot-launcher.role-hr.dark,
+.hr-chatbot-wrapper.role-hr.dark {
+    --hrc-navy: #e0ab53;
+    --hrc-navy-strong: #f0c47a;
+    --hrc-navy-soft: rgba(224, 171, 83, 0.14);
+    --hrc-accent: #e0ab53;
+    --hrc-accent-soft: rgba(224, 171, 83, 0.14);
+}
+
+/* ---- Admin (plum) ---- */
+.hr-chatbot-launcher.role-admin,
 .hr-chatbot-wrapper.role-admin {
-    --hrc-accent: var(--hrc-plum);
+    --hrc-navy: #7a3f60;
+    --hrc-navy-strong: #55293f;
+    --hrc-navy-soft: #f4e9ef;
+    --hrc-accent: #7a3f60;
+    --hrc-accent-soft: #f4e9ef;
 }
 
+.hr-chatbot-launcher.role-admin.dark,
+.hr-chatbot-wrapper.role-admin.dark {
+    --hrc-navy: #cd8fb1;
+    --hrc-navy-strong: #e3b2cb;
+    --hrc-navy-soft: rgba(205, 143, 177, 0.16);
+    --hrc-accent: #cd8fb1;
+    --hrc-accent-soft: rgba(205, 143, 177, 0.16);
+}
+
+/* Light-theme headers/launchers keep a dark gradient per role */
 .role-hr .hr-chatbot-header,
-.role-hr .hr-chatbot-launcher {
+.hr-chatbot-launcher.role-hr {
     background: linear-gradient(155deg, #a56a1c 0%, #7a4d15 100%);
-}
-
-.role-hr .hr-chatbot-role-pill,
-.role-hr .hr-chatbot-avatar-status,
-.role-hr .hr-chatbot-message-avatar,
-.role-hr .hr-chatbot-send-button,
-.role-hr .hr-chatbot-message-row.user .hr-chatbot-bubble {
-    background: var(--hrc-amber);
-}
-
-.role-hr .hr-chatbot-input-box:focus-within {
-    border-color: var(--hrc-amber);
-    box-shadow: 0 0 0 3px var(--hrc-amber-soft);
-}
-
-.role-hr .hr-chatbot-quick-icon,
-.role-hr .hr-chatbot-leave-card-top svg {
-    background: var(--hrc-amber-soft);
-    color: var(--hrc-amber);
+    border-color: #7a4d15;
 }
 
 .role-admin .hr-chatbot-header,
-.role-admin .hr-chatbot-launcher {
+.hr-chatbot-launcher.role-admin {
     background: linear-gradient(155deg, #7a3f60 0%, #55293f 100%);
+    border-color: #55293f;
 }
 
-.role-admin .hr-chatbot-role-pill,
-.role-admin .hr-chatbot-avatar-status,
-.role-admin .hr-chatbot-message-avatar,
-.role-admin .hr-chatbot-send-button,
-.role-admin .hr-chatbot-message-row.user .hr-chatbot-bubble {
-    background: var(--hrc-plum);
+/* Dark-theme headers/launchers: deep tinted surfaces with a role-coloured edge */
+.role-hr.dark .hr-chatbot-header,
+.hr-chatbot-launcher.role-hr.dark {
+    background: linear-gradient(155deg, #3a2a12 0%, #1f1709 100%);
+    border-color: rgba(224, 171, 83, 0.45);
 }
 
-.role-admin .hr-chatbot-input-box:focus-within {
-    border-color: var(--hrc-plum);
-    box-shadow: 0 0 0 3px var(--hrc-plum-soft);
+.role-admin.dark .hr-chatbot-header,
+.hr-chatbot-launcher.role-admin.dark {
+    background: linear-gradient(155deg, #3a2030 0%, #1f1119 100%);
+    border-color: rgba(205, 143, 177, 0.45);
 }
 
-.role-admin .hr-chatbot-quick-icon,
-.role-admin .hr-chatbot-leave-card-top svg {
-    background: var(--hrc-plum-soft);
-    color: var(--hrc-plum);
+/* online dot ring follows the launcher colour */
+.hr-chatbot-launcher.role-hr .hr-chatbot-online-dot {
+    border-color: #7a4d15;
+}
+
+.hr-chatbot-launcher.role-admin .hr-chatbot-online-dot {
+    border-color: #55293f;
+}
+
+/* ---- Role pill: clear "who am I chatting as" badge ---- */
+.hr-chatbot-role-pill {
+    text-transform: uppercase;
+    box-shadow: 0 0 0 3px var(--hrc-navy-soft);
+}
+
+.dark .hr-chatbot-role-pill {
+    color: #101521;
+}
+
+/* ---- Quick actions: tinted icon tiles + subtle lift ---- */
+.hr-chatbot-quick-card:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px -8px rgba(20, 28, 43, 0.35);
+}
+
+.hr-chatbot-quick-icon {
+    background: var(--hrc-navy-soft);
+    color: var(--hrc-navy);
+}
+
+.hr-chatbot-leave-card-top svg {
+    color: var(--hrc-navy);
+}
+
+/* user bubbles in dark mode: keep text legible on light accents */
+.dark .hr-chatbot-message-row.user .hr-chatbot-bubble,
+.dark .hr-chatbot-send-button,
+.dark .hr-chatbot-training-link {
+    color: #101521;
+}
+
+/* ---- Admin: slightly more "console" feel ---- */
+.hr-chatbot-wrapper.role-admin .hr-chatbot-security-strip {
+    border-bottom-style: dashed;
+}
+
+.hr-chatbot-wrapper.role-admin .hr-chatbot-quick-card {
+    border-radius: 6px;
 }
 
 /* ============================================================
