@@ -27,7 +27,7 @@ html.dark {
 }
 
 /* =========================================================
-   RESPONSIVE GLOBAL LAYOUT & MOBILE BREAKPOINTS (< 768px)
+   RESPONSIVE GLOBAL LAYOUT & MOBILE BREAKPOINTS
    ========================================================= */
 
 html,
@@ -39,11 +39,13 @@ body {
   color: var(--text-primary);
   width: 100%;
   max-width: 100vw;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-html.dark, html.dark body {
+html.dark,
+html.dark body {
   background: var(--bg-primary);
   color: var(--text-primary);
 }
@@ -64,7 +66,10 @@ html.dark .app-navbar {
   box-shadow: none;
 }
 
-/* Base Layout Containers */
+/* =========================================================
+   BASE LAYOUT CONTAINERS
+   ========================================================= */
+
 .app-container {
   display: flex;
   min-height: 100vh;
@@ -113,7 +118,9 @@ html.dark .app-navbar {
   margin-left: 240px;
   width: calc(100% - 240px);
   min-height: 100vh;
-  transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:
+    margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-sizing: border-box;
 }
 
@@ -129,6 +136,7 @@ html.dark .app-navbar {
 /* =========================================================
    DASHBOARD GRIDS DESKTOP BASE
    ========================================================= */
+
 .dashboard-stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -151,48 +159,52 @@ html.dark .app-navbar {
 }
 
 /* =========================================================
-   MOBILE SCREENS (< 768px / Phones & Tablets including iPhone 12)
+   MOBILE SCREENS
    ========================================================= */
+
 @media (max-width: 768px) {
 
-  /* Hide sidebar off-screen by default on mobile */
+  * {
+    box-sizing: border-box;
+  }
+
+  /* Hide sidebar off-screen */
   .app-sidebar {
     transform: translateX(-100%) !important;
   }
 
-  /* Slide sidebar in when opened */
+  /* Open sidebar when hamburger is clicked */
   .app-sidebar.mobile-open {
     transform: translateX(0) !important;
     box-shadow: 4px 0 28px rgba(0, 0, 0, 0.45);
   }
 
-  /* Expand Navbar across 100% screen width on mobile */
+  /* Navbar full width */
   .app-navbar {
     left: 0 !important;
     width: 100% !important;
     padding: 0 12px !important;
   }
 
-  /* Expand Main Content across 100% screen width on mobile */
+  /* Main content full width */
   .app-main-content {
     margin-left: 0 !important;
     width: 100% !important;
     max-width: 100vw !important;
+    min-width: 0 !important;
   }
 
-  /* Reduce main content padding on small phone screens */
   .app-main-padding {
     padding: 14px !important;
     width: 100% !important;
     max-width: 100vw !important;
+    min-width: 0 !important;
   }
 
-  /* Show hamburger button on mobile */
   .mobile-hamburger {
     display: flex !important;
   }
 
-  /* Mobile overlay backdrop when sidebar is open */
   .mobile-overlay {
     position: fixed;
     top: 0;
@@ -205,7 +217,6 @@ html.dark .app-navbar {
     animation: fadeIn 0.2s ease-out;
   }
 
-  /* Adjust Navbar items for narrow screens (iPhone 12 / etc.) */
   .nav-search-box {
     max-width: 130px !important;
     width: 100% !important;
@@ -219,45 +230,52 @@ html.dark .app-navbar {
     gap: 10px !important;
   }
 
-  /* Dashboard Grids -> 2x2 cards and stacked 1-column layouts */
+  /* Dashboard grids */
   .dashboard-stats-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 12px !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
   }
 
   .dashboard-main-grid {
-    grid-template-columns: 1fr !important;
-    gap: 16px !important;
-  }
-
-  .dashboard-actions-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 12px !important;
   }
 
-  /* =========================================================
-     UNIVERSAL DOM ATTRIBUTE OVERRIDES FOR EVERY PAGE (< 768px)
-     ========================================================= */
-  /* 1. Convert ANY 2-column or split layout grid into a single vertical column on mobile */
+  .dashboard-actions-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  /* =======================================================
+     UNIVERSAL INLINE GRID OVERRIDES
+     ======================================================= */
+
   div[style*="grid-template-columns: 1fr 1fr"],
   div[style*="grid-template-columns: 1fr 1.3fr"],
   div[style*="grid-template-columns: 1fr 1.4fr"],
   div[style*="grid-template-columns: 1fr 1.5fr"],
   div[style*="grid-template-columns: 380px 1fr"] {
-    grid-template-columns: 1fr !important;
-    gap: 16px !important;
+    gap: 12px !important;
+    min-width: 0 !important;
   }
 
-  /* 2. Convert ANY 3-column, 4-column, or 5-column grid into 2x2 or stacked grid on mobile */
+  div[style*="grid-template-columns: 1fr 1fr"]>*,
+  div[style*="grid-template-columns: 1fr 1.3fr"]>*,
+  div[style*="grid-template-columns: 1fr 1.4fr"]>*,
+  div[style*="grid-template-columns: 1fr 1.5fr"]>*,
+  div[style*="grid-template-columns: 380px 1fr"]>* {
+    min-width: 0 !important;
+  }
+
   div[style*="grid-template-columns: repeat(3, 1fr)"],
   div[style*="grid-template-columns: repeat(4, 1fr)"],
   div[style*="grid-template-columns: repeat(5, 1fr)"],
   div[style*="grid-template-columns: 1fr 1fr 1fr"] {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 12px !important;
   }
 
-  /* 3. Make ALL Modal & Overlay dialog boxes fit mobile phone screens cleanly */
+  /* Modal */
   div[style*="max-height: 90vh"],
   div[style*="maxHeight: '90vh'"] {
     padding: 20px 16px !important;
@@ -269,8 +287,12 @@ html.dark .app-navbar {
   }
 }
 
-/* Tiny Mobile Screens (< 480px / iPhone SE & Androids) */
+/* =========================================================
+   TINY MOBILE SCREENS
+   ========================================================= */
+
 @media (max-width: 480px) {
+
   .nav-search-box {
     max-width: 110px !important;
   }
@@ -290,11 +312,9 @@ html.dark .app-navbar {
     border-radius: 20px !important;
   }
 
-  /* Target specifically for SendGreetingForm and other similarly padded forms inline */
   div[style*="padding: 32px 24px"] {
     padding: 24px 16px !important;
   }
-
 
   div[style*="grid-template-columns: repeat(3, 1fr)"],
   div[style*="grid-template-columns: repeat(4, 1fr)"],
@@ -306,15 +326,18 @@ html.dark .app-navbar {
 }
 
 @media (max-width: 360px) {
+
   .dashboard-stats-grid {
     grid-template-columns: 1fr !important;
   }
 }
 
-/* Specific optimization for OnePlus 11R (~412px width) and similar large phones */
+/* =========================================================
+   430px MOBILE OPTIMIZATION
+   ========================================================= */
+
 @media (max-width: 430px) {
 
-  /* Ensure form containers have optimal spacing */
   .max-w-2xl,
   .max-w-7xl,
   .login-card {
@@ -322,13 +345,11 @@ html.dark .app-navbar {
     padding-right: 16px !important;
   }
 
-  /* Make inline styled padding responsive */
   div[style*="padding: 32px 24px"],
   div[style*="padding: '32px 24px'"] {
     padding: 20px 16px !important;
   }
 
-  /* Reduce gap on grids to fit content better */
   div[style*="gap: 16px"] {
     gap: 12px !important;
   }
@@ -339,6 +360,7 @@ html.dark .app-navbar {
 }
 
 @media (min-width: 769px) {
+
   .mobile-hamburger {
     display: none !important;
   }
@@ -361,6 +383,7 @@ html.dark .app-navbar {
 /* =========================================================
    TABLE & CARD UNIVERSAL MOBILE OPTIMIZATIONS
    ========================================================= */
+
 .table-responsive {
   width: 100% !important;
   max-width: 100vw !important;
@@ -373,7 +396,6 @@ html.dark .app-navbar {
   box-sizing: border-box !important;
 }
 
-/* Ensure data table grids don't compress past legible column widths */
 .admin-employees-table,
 div[style*="0.5fr 2fr 1.5fr"],
 div[style*="0.6fr 2fr 1.2fr"],
@@ -390,7 +412,6 @@ div[style*="grid-template-columns: 1.5fr 1fr"] {
   width: 100% !important;
 }
 
-/* Ensure columns inside data table rows never wrap or smash together */
 div[style*="0.5fr 2fr"]>div,
 div[style*="0.6fr 2fr"]>div,
 div[style*="2fr 1.2fr"]>div,
@@ -399,7 +420,10 @@ div[style*="1.5fr 1fr"]>div {
   white-space: nowrap !important;
 }
 
-/* Universal login container responsive constraints */
+/* =========================================================
+   LOGIN
+   ========================================================= */
+
 .login-container {
   width: 100%;
   max-width: 100vw;
@@ -409,7 +433,6 @@ div[style*="1.5fr 1fr"]>div {
 
 @media (max-width: 640px) {
 
-  /* Make login cards adjust gracefully on all small phone screens */
   .login-card {
     padding: 24px 20px !important;
     margin: 12px !important;
@@ -418,7 +441,6 @@ div[style*="1.5fr 1fr"]>div {
     box-sizing: border-box !important;
   }
 
-  /* Responsive font adjustments */
   h1 {
     font-size: 1.35rem !important;
   }
@@ -428,7 +450,10 @@ div[style*="1.5fr 1fr"]>div {
   }
 }
 
-/* --- Glow Cycle Animation --- */
+/* =========================================================
+   GLOW CYCLE ANIMATION
+   ========================================================= */
+
 .glow-cycle-text {
   position: relative;
   display: inline-block;
@@ -449,7 +474,9 @@ html.dark .glow-cycle-text::before {
   width: 800px;
   height: 800px;
   transform: translate(-50%, -50%);
-  background: conic-gradient(from 0deg, transparent 85%, rgba(0, 240, 255, 1) 100%);
+  background: conic-gradient(from 0deg,
+      transparent 85%,
+      rgba(0, 240, 255, 1) 100%);
   animation: rotateGlow 3s linear infinite;
   z-index: -2;
 }
@@ -464,8 +491,841 @@ html.dark .glow-cycle-text::after {
 }
 
 @keyframes rotateGlow {
-  0% { transform: translate(-50%, -50%) rotate(0deg); }
-  100% { transform: translate(-50%, -50%) rotate(360deg); }
+  0% {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  100% {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
 }
-.hide-scrollbar::-webkit-scrollbar { display: none; }
-.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* =========================================================
+   MOBILE RESPONSIVE - PRESERVE EXISTING LAYOUT
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden !important;
+  }
+
+  .app-container {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden !important;
+  }
+
+  .app-main-content {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-left: 0 !important;
+  }
+
+  .app-main-padding {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 12px !important;
+  }
+
+  .app-main-content>*,
+  .app-main-padding>*,
+  .employee-dashboard>* {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .table-responsive {
+    max-width: 100%;
+    overflow-x: auto !important;
+  }
+
+  .app-sidebar {
+    width: 240px !important;
+    transform: translateX(-100%) !important;
+  }
+
+  .app-sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  .app-navbar {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* =========================================================
+   EMPLOYEE DASHBOARD MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+  .employee-dashboard {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  .employee-card {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+
+  .employee-two-column {
+    grid-template-columns:
+      minmax(0, 1.1fr) minmax(0, 0.9fr) !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .employee-dashboard-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .leave-balance-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .attendance-time-grid {
+    grid-template-columns:
+      minmax(0, 1fr) auto minmax(0, 1fr) !important;
+    gap: 8px !important;
+    padding: 12px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .quick-action-grid {
+    grid-template-columns:
+      repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .employee-kpi {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 14px !important;
+    overflow: hidden !important;
+  }
+
+  .quick-action-button {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    padding: 10px !important;
+    overflow: hidden !important;
+  }
+}
+
+/* =========================================================
+   FINAL VERY SMALL MOBILE FIX
+   400px AND BELOW
+
+   Keeps important sections side-by-side while preventing
+   horizontal clipping.
+   ========================================================= */
+
+@media (max-width: 400px) {
+
+  /* -------------------------------------------------------
+     PAGE CONTAINER
+     ------------------------------------------------------- */
+
+  html,
+  body {
+    width: 100% !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  .app-container {
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  .app-main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  .app-main-padding {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 8px !important;
+    overflow-x: hidden !important;
+  }
+
+  /* -------------------------------------------------------
+     SIDEBAR
+     ------------------------------------------------------- */
+
+  .app-sidebar {
+    width: 240px !important;
+    max-width: 240px !important;
+    transform: translateX(-100%) !important;
+  }
+
+  .app-sidebar.mobile-open {
+    transform: translateX(0) !important;
+  }
+
+  /* -------------------------------------------------------
+     NAVBAR
+     ------------------------------------------------------- */
+
+  .app-navbar {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    padding: 0 8px !important;
+  }
+
+  /* -------------------------------------------------------
+     EMPLOYEE DASHBOARD
+     ------------------------------------------------------- */
+
+  .employee-dashboard {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    /*
+     * Do not allow the dashboard itself to create
+     * horizontal scrolling.
+     */
+    overflow-x: hidden !important;
+
+    margin: -8px !important;
+    padding: 8px !important;
+  }
+
+  /* -------------------------------------------------------
+     KPI GRID
+     Keep 2 cards per row.
+     ------------------------------------------------------- */
+
+  .employee-dashboard-grid {
+    display: grid !important;
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) !important;
+
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    gap: 6px !important;
+  }
+
+  .employee-dashboard-grid>* {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* -------------------------------------------------------
+     ATTENDANCE + LEAVE
+     Keep them side-by-side.
+     ------------------------------------------------------- */
+
+  .employee-two-column {
+    display: grid !important;
+
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) !important;
+
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    gap: 6px !important;
+  }
+
+  .employee-two-column>* {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* -------------------------------------------------------
+     LEAVE BALANCE
+     Keep leave cards 2 columns.
+     ------------------------------------------------------- */
+
+  .leave-balance-grid {
+    display: grid !important;
+
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) !important;
+
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    gap: 5px !important;
+  }
+
+  .leave-balance-grid>* {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  /* -------------------------------------------------------
+     ATTENDANCE TIME
+     Keep CHECK IN | divider | CHECK OUT.
+     ------------------------------------------------------- */
+
+  .attendance-time-grid {
+    display: grid !important;
+
+    grid-template-columns:
+      minmax(0, 1fr) auto minmax(0, 1fr) !important;
+
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    gap: 5px !important;
+    padding: 9px !important;
+    box-sizing: border-box !important;
+  }
+
+  .attendance-time-grid>* {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* -------------------------------------------------------
+     EMPLOYEE CARDS
+     ------------------------------------------------------- */
+
+  .employee-card {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+
+    padding: 11px !important;
+
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .employee-card>* {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* -------------------------------------------------------
+     KPI CARDS
+     ------------------------------------------------------- */
+
+  .employee-kpi {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+
+    padding: 11px !important;
+
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .employee-kpi>* {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* -------------------------------------------------------
+     QUICK ACTIONS
+     Keep 2 columns.
+     ------------------------------------------------------- */
+
+  .quick-action-grid {
+    display: grid !important;
+
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) !important;
+
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    gap: 6px !important;
+  }
+
+  .quick-action-button {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    padding: 9px !important;
+
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  .quick-action-button span {
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+
+  /* -------------------------------------------------------
+     BOTTOM GRID
+     Keep the two sections side-by-side.
+     ------------------------------------------------------- */
+
+  .employee-bottom-grid {
+    display: grid !important;
+
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) !important;
+
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    gap: 6px !important;
+  }
+
+  .employee-bottom-grid>* {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  /* -------------------------------------------------------
+     LONG TEXT
+     Prevent long labels from expanding cards.
+     ------------------------------------------------------- */
+
+  .employee-dashboard h1,
+  .employee-dashboard h2,
+  .employee-dashboard h3,
+  .employee-dashboard h4,
+  .employee-dashboard p,
+  .employee-dashboard span,
+  .employee-dashboard div {
+    min-width: 0;
+  }
+
+  /* -------------------------------------------------------
+     TABLES
+     Keep tables scrollable rather than expanding page.
+     ------------------------------------------------------- */
+
+  .table-responsive {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+  }
+}
+
+/* =========================================================
+   MOBILE PHONE FIX
+   Keeps dashboard sections side-by-side
+   Prevents content clipping
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+  /* ---------- PAGE ---------- */
+
+  html,
+  body {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .app-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  .app-main-content {
+    margin-left: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+  .app-main-padding {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 10px !important;
+    overflow-x: hidden !important;
+  }
+
+
+  /* ---------- NAVBAR ---------- */
+
+  .app-navbar {
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    padding: 0 8px !important;
+    overflow: hidden !important;
+  }
+
+  .app-navbar>* {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+
+  /* ---------- EMPLOYEE DASHBOARD ---------- */
+
+  .employee-dashboard {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    overflow-x: hidden !important;
+  }
+
+
+  /* ---------- MAIN TWO COLUMN LAYOUT ---------- */
+
+  .employee-two-column {
+    display: grid !important;
+
+    /* KEEP SIDE-BY-SIDE */
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) !important;
+
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    gap: 8px !important;
+  }
+
+  .employee-two-column>* {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+
+  /* ---------- ATTENDANCE ---------- */
+
+  .attendance-time-grid {
+    display: grid !important;
+
+    grid-template-columns:
+      minmax(0, 1fr) auto minmax(0, 1fr) !important;
+
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    gap: 5px !important;
+    padding: 9px !important;
+
+    box-sizing: border-box !important;
+  }
+
+  .attendance-time-grid>* {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+
+  /* ---------- LEAVE BALANCE ---------- */
+
+  .leave-balance-grid {
+    display: grid !important;
+
+    /* KEEP TWO CARDS PER ROW */
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) !important;
+
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    gap: 6px !important;
+  }
+
+  .leave-balance-grid>* {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  /* VERY IMPORTANT:
+     Prevent text/numbers inside leave cards
+     from forcing the card wider */
+
+  .leave-balance-grid *,
+  .leave-balance-grid span,
+  .leave-balance-grid div,
+  .leave-balance-grid p {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+
+  /* ---------- DASHBOARD GRID ---------- */
+
+  .employee-dashboard-grid {
+    display: grid !important;
+
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) !important;
+
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    gap: 8px !important;
+  }
+
+  .employee-dashboard-grid>* {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+  }
+
+
+  /* ---------- EMPLOYEE CARDS ---------- */
+
+  .employee-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    padding: 10px !important;
+
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .employee-card>* {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+
+  /* ---------- KPI CARDS ---------- */
+
+  .employee-kpi {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    padding: 10px !important;
+
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  .employee-kpi>* {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+
+  /* ---------- QUICK ACTIONS ---------- */
+
+  .quick-action-grid {
+    display: grid !important;
+
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) !important;
+
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    gap: 6px !important;
+  }
+
+  .quick-action-button {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    padding: 9px !important;
+
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+
+  /* ---------- BOTTOM GRID ---------- */
+
+  .employee-bottom-grid {
+    display: grid !important;
+
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) !important;
+
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+
+    gap: 8px !important;
+  }
+
+  .employee-bottom-grid>* {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+
+
+  /* ---------- GENERAL TEXT ---------- */
+
+  .employee-dashboard h1,
+  .employee-dashboard h2,
+  .employee-dashboard h3,
+  .employee-dashboard h4,
+  .employee-dashboard p,
+  .employee-dashboard span,
+  .employee-dashboard div {
+    min-width: 0;
+  }
+
+
+  /* ---------- TABLES ---------- */
+
+  .table-responsive {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+  }
+
+
+  /* ---------- HR ASSISTANT ---------- */
+
+  .hr-assistant,
+  .hr-assistant-button,
+  .ai-assistant-button {
+    max-width: calc(100vw - 24px) !important;
+    min-width: 0 !important;
+  }
+}
+
+
+/* =========================================================
+   EXTRA SMALL PHONES
+   ========================================================= */
+
+@media (max-width: 400px) {
+
+  .app-main-padding {
+    padding: 8px !important;
+  }
+
+  .employee-dashboard {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .employee-two-column {
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) !important;
+
+    gap: 5px !important;
+  }
+
+  .employee-dashboard-grid {
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) !important;
+
+    gap: 5px !important;
+  }
+
+  .leave-balance-grid {
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) !important;
+
+    gap: 4px !important;
+  }
+
+  .attendance-time-grid {
+    grid-template-columns:
+      minmax(0, 1fr) auto minmax(0, 1fr) !important;
+
+    gap: 4px !important;
+    padding: 8px !important;
+  }
+
+  .employee-card,
+  .employee-kpi {
+    padding: 9px !important;
+  }
+
+  .quick-action-grid {
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) !important;
+
+    gap: 5px !important;
+  }
+
+  .employee-bottom-grid {
+    grid-template-columns:
+      minmax(0, 1fr) minmax(0, 1fr) !important;
+
+    gap: 5px !important;
+  }
+}

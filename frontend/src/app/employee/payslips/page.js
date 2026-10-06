@@ -1,65 +1,154 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { getMyPayslips, downloadPayslipPdf } from '@/lib/employeeApi';
 import api from '@/lib/axios';
 import toast from 'react-hot-toast';
-import { Banknote, Download, Loader2 } from 'lucide-react';
+import { Banknote, Download, Loader2, ChevronLeft } from 'lucide-react';
 
 const MONTHS = [
   'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December'
+  'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-function PayslipListItem({ p, selected, onSelect, formatCurrency }) {
+/* ============================================================
+   CSS
+============================================================ */
+
+const payslipCSS = `
+.ps-root { width: 100%; max-width: 100%; min-width: 0; color: var(--text-primary); }
+.ps-root *, .ps-root *::before, .ps-root *::after { box-sizing: border-box; }
+
+.ps-head { margin-bottom: 24px; }
+.ps-title { font-size: 22px; font-weight: 800; margin: 0 0 4px; }
+.ps-subtitle { font-size: 13px; color: var(--text-muted); margin: 0; }
+
+/* ---------- layout ---------- */
+.ps-layout { display: grid; grid-template-columns: minmax(0,1fr); gap: 20px; align-items: start; }
+.ps-layout.has-selected { grid-template-columns: minmax(0,1fr) minmax(0,1.4fr); }
+
+.ps-card { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; box-shadow: var(--card-shadow); overflow: hidden; min-width: 0; }
+.ps-card-head { padding: 16px 20px; border-bottom: 1px solid var(--card-border); }
+.ps-card-title { font-size: 15px; font-weight: 700; margin: 0; }
+.ps-state { padding: 40px 20px; text-align: center; color: var(--text-muted); }
+
+/* ---------- list item ---------- */
+.ps-item {
+  width: 100%; display: block; text-align: left; border: none; cursor: pointer; color: inherit;
+  padding: 16px 20px; min-height: 64px; background: transparent;
+  border-bottom: 1px solid var(--card-border); border-left: 3px solid transparent;
+  transition: background .15s;
+}
+.ps-item:hover, .ps-item:focus-visible { background: rgba(148,163,184,.10); outline: none; }
+.ps-item.active { background: rgba(59,130,246,.10); border-left-color: #3b82f6; }
+.ps-item-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.ps-item-main { min-width: 0; }
+.ps-item-month { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+.ps-item-no { font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ps-item-side { text-align: right; flex-shrink: 0; }
+.ps-item-net { font-size: 16px; font-weight: 800; color: #16a34a; margin-bottom: 4px; }
+.ps-pill { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+.ps-pill.paid { background: rgba(22,163,74,.15); color: #16a34a; }
+.ps-pill.pending { background: rgba(234,179,8,.18); color: #ca8a04; }
+html.dark .ps-pill.paid { color: #4ade80; }
+html.dark .ps-pill.pending { color: #facc15; }
+html.dark .ps-item-net, html.dark .ps-net-value, html.dark .ps-gross-value { color: #4ade80; }
+
+/* ---------- pager ---------- */
+.ps-pager { padding: 14px 20px; display: flex; justify-content: center; align-items: center; gap: 8px; border-top: 1px solid var(--card-border); }
+.ps-pager button { padding: 8px 14px; min-height: 38px; border: 1px solid var(--card-border); border-radius: 6px; font-size: 12px; font-weight: 600; background: var(--bg-primary); color: var(--text-primary); cursor: pointer; }
+.ps-pager button:disabled { color: var(--text-muted); cursor: not-allowed; opacity: .6; }
+.ps-pager span { font-size: 12px; color: var(--text-secondary); padding: 0 6px; }
+
+/* ---------- detail ---------- */
+.ps-back { display: none; align-items: center; gap: 4px; margin-bottom: 12px; padding: 8px 12px 8px 6px; min-height: 40px; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; color: var(--text-primary); font-size: 13px; font-weight: 700; cursor: pointer; }
+
+.ps-hero { background: linear-gradient(135deg, #1e3a5f, #2563eb); padding: 20px 24px; color: #fff; }
+.ps-hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.ps-hero-tag { font-size: 11px; color: rgba(255,255,255,.7); margin-bottom: 4px; letter-spacing: 1px; }
+.ps-hero-month { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
+.ps-hero-no { font-size: 12px; color: rgba(255,255,255,.7); word-break: break-all; }
+.ps-hero-net { text-align: right; }
+.ps-hero-amount { font-size: 28px; font-weight: 900; line-height: 1.1; }
+.ps-hero-paid { font-size: 11px; color: rgba(255,255,255,.7); margin-top: 4px; }
+.ps-info { margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,.2); display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 12px 8px; }
+.ps-info-label { font-size: 10px; color: rgba(255,255,255,.6); letter-spacing: .4px; }
+.ps-info-value { font-size: 13px; font-weight: 600; word-break: break-word; }
+
+.ps-body { padding: 20px 24px; }
+.ps-section-title { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+.ps-line { display: flex; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--card-border); font-size: 13px; }
+.ps-line span:first-child { color: var(--text-secondary); }
+.ps-line span:last-child { font-weight: 600; white-space: nowrap; }
+.ps-gross { display: flex; justify-content: space-between; gap: 12px; padding: 12px 0; margin-top: 4px; border-top: 2px solid var(--card-border); font-size: 14px; font-weight: 800; }
+.ps-gross-value { color: #16a34a; }
+.ps-net { margin: 20px 0 16px; padding: 16px 20px; border-radius: 10px; background: rgba(22,163,74,.10); border: 1px solid rgba(22,163,74,.30); display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.ps-net-label { font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+.ps-net-hint { font-size: 11px; color: var(--text-muted); }
+.ps-net-value { font-size: 28px; font-weight: 900; color: #16a34a; white-space: nowrap; }
+.ps-download { width: 100%; padding: 13px; min-height: 48px; background: #1e3a5f; color: #fff; border: none; border-radius: 10px; font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+.ps-download:disabled { opacity: .7; cursor: not-allowed; }
+html.dark .ps-download { background: #2563eb; }
+
+/* =========================================================
+   TABLET / PHONE (<= 900px): one panel at a time
+   ========================================================= */
+@media (max-width: 900px) {
+  .ps-layout.has-selected { grid-template-columns: minmax(0,1fr); }
+  .ps-layout.has-selected .ps-list { display: none; }
+  .ps-back { display: inline-flex; }
+}
+
+/* =========================================================
+   PHONE (<= 600px)
+   ========================================================= */
+@media (max-width: 600px) {
+  .ps-head { margin-bottom: 16px; }
+  .ps-title { font-size: 20px; }
+  .ps-card-head { padding: 14px 16px; }
+  .ps-item { padding: 14px 16px; }
+
+  .ps-hero { padding: 18px 16px; }
+  .ps-hero-top { flex-direction: column; gap: 14px; }
+  .ps-hero-net { text-align: left; width: 100%; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.2); }
+  .ps-hero-amount { font-size: 30px; }
+
+  .ps-body { padding: 16px; }
+  .ps-net { padding: 14px 16px; }
+  .ps-net-value { font-size: 24px; }
+}
+`;
+
+/* ============================================================
+   LIST ITEM
+============================================================ */
+
+function PayslipListItem({ p, selected, loadingNumber, onSelect, formatCurrency }) {
   const isSelected = selected?.payslipNumber === p.payslipNumber;
+  const isLoading = loadingNumber === p.payslipNumber;
+
   return (
     <button
       type="button"
+      className={'ps-item' + (isSelected ? ' active' : '')}
       onClick={() => onSelect(p.payslipNumber)}
-      style={{
-        width: '100%',
-        textAlign: 'left',
-        border: 'none',
-        display: 'block',
-        padding: '16px 20px',
-              borderBottom: '1px solid var(--border-color, rgba(148, 163, 184, 0.2))',
-      cursor: 'pointer',
-      background: isSelected ? 'var(--bg-active, rgba(59, 130, 246, 0.1))' : 'transparent',
-      borderLeft: isSelected ? '3px solid #3b82f6' : '3px solid transparent',
-      transition: 'all 0.15s',
-    }}
-    onMouseEnter={e => {
-      if (!isSelected) e.currentTarget.style.background = 'var(--bg-hover, rgba(148, 163, 184, 0.1))';
-    }}
-    onMouseLeave={e => {
-      if (!isSelected) e.currentTarget.style.background = 'transparent';
-    }}
-    onFocus={e => {
-      if (!isSelected) e.currentTarget.style.background = 'var(--bg-hover, rgba(148, 163, 184, 0.1))';
-    }}
-    onBlur={e => {
-      if (!isSelected) e.currentTarget.style.background = 'transparent';
-    }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div>
-          <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '4px' }}>
+      <div className="ps-item-row">
+        <div className="ps-item-main">
+          <div className="ps-item-month">
             {MONTHS[(p.month || 1) - 1]} {p.year}
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            {p.payslipNumber}
-          </div>
+          <div className="ps-item-no">{p.payslipNumber}</div>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '16px', fontWeight: '800', color: '#16a34a', marginBottom: '4px' }}>
-            {formatCurrency(p.netSalary)}
+
+        <div className="ps-item-side">
+          <div className="ps-item-net">
+            {isLoading ? (
+              <Loader2 size={16} className="animate-spin" style={{ color: 'var(--text-muted)' }} />
+            ) : (
+              formatCurrency(p.netSalary)
+            )}
           </div>
-          <span style={{
-            background: p.paid ? '#dcfce7' : '#fef9c3',
-            color: p.paid ? '#16a34a' : '#ca8a04',
-            padding: '2px 8px', borderRadius: '20px',
-            fontSize: '10px', fontWeight: '700',
-          }}>
+          <span className={'ps-pill ' + (p.paid ? 'paid' : 'pending')}>
             {p.paid ? 'PAID' : 'PENDING'}
           </span>
         </div>
@@ -68,24 +157,40 @@ function PayslipListItem({ p, selected, onSelect, formatCurrency }) {
   );
 }
 
-function PayslipListView({ loading, payslips, selected, onSelect, page, totalPages, setPage, formatCurrency }) {
-  const renderListContent = () => {
+/* ============================================================
+   LIST VIEW
+============================================================ */
+
+function PayslipListView({
+  loading,
+  payslips,
+  selected,
+  loadingNumber,
+  onSelect,
+  page,
+  totalPages,
+  setPage,
+  formatCurrency,
+}) {
+  const renderContent = () => {
     if (loading) {
-      return <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading...</div>;
+      return <div className="ps-state">Loading...</div>;
     }
+
     if (payslips.length === 0) {
       return (
-        <div style={{ padding: '60px', textAlign: 'center' }}>
-          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '12px', color: '#4f46e5' }}><Banknote size={40} strokeWidth={1.5} /></div>
-          <div style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+        <div className="ps-state" style={{ padding: '60px 20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, color: '#4f46e5' }}>
+            <Banknote size={40} strokeWidth={1.5} />
+          </div>
+          <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 4 }}>
             No payslips yet
           </div>
-          <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            Payslips will appear here once HR generates them
-          </div>
+          <div style={{ fontSize: 13 }}>Payslips will appear here once HR generates them</div>
         </div>
       );
     }
+
     return (
       <>
         {payslips.map((p) => (
@@ -93,27 +198,29 @@ function PayslipListView({ loading, payslips, selected, onSelect, page, totalPag
             key={p.payslipNumber || p.id}
             p={p}
             selected={selected}
+            loadingNumber={loadingNumber}
             onSelect={onSelect}
             formatCurrency={formatCurrency}
           />
         ))}
 
-        {/* Pagination */}
         {totalPages > 1 && (
-          <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'center', gap: '8px', borderTop: '1px solid var(--card-border)' }}>
-            <button
-              onClick={() => setPage(prev => Math.max(0, prev - 1))}
-              disabled={page === 0}
-              style={{ padding: '6px 14px', border: '1px solid var(--card-border)', borderRadius: '6px', fontSize: '12px', fontWeight: '600', color: page === 0 ? '#cbd5e1' : '#374151', background: 'var(--card-bg)', cursor: page === 0 ? 'not-allowed' : 'pointer' }}
-            >← Prev</button>
-            <span style={{ padding: '6px 14px', fontSize: '12px', color: 'var(--text-secondary)' }}>
+          <div className="ps-pager">
+            <button type="button" onClick={() => setPage((prev) => Math.max(0, prev - 1))} disabled={page === 0}>
+              ← Prev
+            </button>
+
+            <span>
               {page + 1} / {totalPages}
             </span>
+
             <button
-              onClick={() => setPage(prev => Math.min(totalPages - 1, prev + 1))}
+              type="button"
+              onClick={() => setPage((prev) => Math.min(totalPages - 1, prev + 1))}
               disabled={page >= totalPages - 1}
-              style={{ padding: '6px 14px', border: '1px solid var(--card-border)', borderRadius: '6px', fontSize: '12px', fontWeight: '600', color: page >= totalPages - 1 ? '#cbd5e1' : '#374151', background: 'var(--card-bg)', cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer' }}
-            >Next →</button>
+            >
+              Next →
+            </button>
           </div>
         )}
       </>
@@ -121,25 +228,25 @@ function PayslipListView({ loading, payslips, selected, onSelect, page, totalPag
   };
 
   return (
-    <div style={{
-      background: 'var(--card-bg)', borderRadius: '12px',
-      border: '1px solid var(--card-border)',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-      overflow: 'hidden',
-    }}>
-      <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--card-border)' }}>
-        <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)' }}>Payslip History</h3>
+    <div className="ps-card ps-list">
+      <div className="ps-card-head">
+        <h3 className="ps-card-title">Payslip History</h3>
       </div>
-      {renderListContent()}
+      {renderContent()}
     </div>
   );
 }
 
-function PayslipDetailView({ selected, loadingDetail, formatCurrency }) {
+/* ============================================================
+   DETAIL VIEW
+============================================================ */
+
+function PayslipDetailView({ selected, loadingDetail, formatCurrency, onBack }) {
   const [downloading, setDownloading] = useState(false);
 
   const handleDownload = async () => {
     setDownloading(true);
+
     try {
       const res = await downloadPayslipPdf(selected.payslipNumber);
       const blob = new Blob([res.data], { type: 'application/pdf' });
@@ -160,15 +267,18 @@ function PayslipDetailView({ selected, loadingDetail, formatCurrency }) {
     }
   };
 
+  const back = (
+    <button type="button" className="ps-back" onClick={onBack}>
+      <ChevronLeft size={18} />
+      All payslips
+    </button>
+  );
+
   if (loadingDetail) {
     return (
-      <div style={{
-        background: 'var(--card-bg)', borderRadius: '12px',
-        border: '1px solid var(--card-border)',
-        boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-        overflow: 'hidden', padding: '40px', textAlign: 'center', color: 'var(--text-muted)'
-      }}>
-        Loading details...
+      <div>
+        {back}
+        <div className="ps-card ps-state">Loading details...</div>
       </div>
     );
   }
@@ -181,148 +291,110 @@ function PayslipDetailView({ selected, loadingDetail, formatCurrency }) {
   ];
 
   return (
-    <div style={{
-      background: 'var(--card-bg)', borderRadius: '12px',
-      border: '1px solid var(--card-border)',
-      boxShadow: '0 1px 4px rgba(0,0,0,0.04)',
-      overflow: 'hidden',
-    }}>
-      {/* Payslip Header */}
-      <div style={{
-        background: 'linear-gradient(135deg, #1e3a5f, #2563eb)',
-        padding: '20px 24px', color: 'white',
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-          <div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', marginBottom: '4px', letterSpacing: '1px' }}>
-              PAYSLIP
-            </div>
-            <div style={{ fontSize: '18px', fontWeight: '800', marginBottom: '4px' }}>
-              {MONTHS[(selected.month || 1) - 1]} {selected.year}
-            </div>
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.7)' }}>
-              {selected.payslipNumber}
-            </div>
-          </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', marginBottom: '4px' }}>NET SALARY</div>
-            <div style={{ fontSize: '28px', fontWeight: '900' }}>
-              {formatCurrency(selected.netSalary)}
-            </div>
-            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.7)', marginTop: '4px' }}>
-              {selected.paid ? `Paid on ${selected.payDate}` : 'Payment Pending'}
-            </div>
-          </div>
-        </div>
+    <div id="ps-detail">
+      {back}
 
-        {/* Employee info */}
-        <div style={{
-          marginTop: '16px', paddingTop: '16px',
-          borderTop: '1px solid rgba(255,255,255,0.2)',
-          display: 'grid', gridTemplateColumns: '1fr 1fr',
-          gap: '8px',
-        }}>
-          <div>
-            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)' }}>EMPLOYEE</div>
-            <div style={{ fontSize: '13px', fontWeight: '600' }}>{selected.employeeName}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)' }}>EMPLOYEE CODE</div>
-            <div style={{ fontSize: '13px', fontWeight: '600' }}>{selected.employeeCode}</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)' }}>PRESENT DAYS</div>
-            <div style={{ fontSize: '13px', fontWeight: '600' }}>{selected.presentDays} days</div>
-          </div>
-          <div>
-            <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.6)' }}>LOP DAYS</div>
-            <div style={{ fontSize: '13px', fontWeight: '600' }}>{selected.lopDays} days</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Earnings (Deductions removed) */}
-      <div style={{ padding: '20px 24px' }}>
-        <div style={{ marginBottom: '20px' }}>
-
-          {/* Earnings */}
-          <div>
-            <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '12px' }}>
-              Earnings
-            </div>
-            {earningsList.map((item) => (
-              <div key={item.label} style={{
-                display: 'flex', justifyContent: 'space-between',
-                padding: '8px 0', borderBottom: '1px solid #f1f5f9',
-                fontSize: '13px',
-              }}>
-                <span style={{ color: 'var(--text-secondary)' }}>{item.label}</span>
-                <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{formatCurrency(item.value)}</span>
+      <div className="ps-card">
+        {/* Hero */}
+        <div className="ps-hero">
+          <div className="ps-hero-top">
+            <div style={{ minWidth: 0 }}>
+              <div className="ps-hero-tag">PAYSLIP</div>
+              <div className="ps-hero-month">
+                {MONTHS[(selected.month || 1) - 1]} {selected.year}
               </div>
-            ))}
-            <div style={{
-              display: 'flex', justifyContent: 'space-between',
-              padding: '10px 0', fontSize: '14px', fontWeight: '800',
-              color: 'var(--text-primary)', borderTop: '2px solid #e2e8f0', marginTop: '4px',
-            }}>
-              <span>Gross Salary</span>
-              <span style={{ color: '#16a34a' }}>{formatCurrency(selected.grossSalary)}</span>
+              <div className="ps-hero-no">{selected.payslipNumber}</div>
+            </div>
+
+            <div className="ps-hero-net">
+              <div className="ps-hero-tag">NET SALARY</div>
+              <div className="ps-hero-amount">{formatCurrency(selected.netSalary)}</div>
+              <div className="ps-hero-paid">
+                {selected.paid ? `Paid on ${selected.payDate}` : 'Payment Pending'}
+              </div>
+            </div>
+          </div>
+
+          <div className="ps-info">
+            <div>
+              <div className="ps-info-label">EMPLOYEE</div>
+              <div className="ps-info-value">{selected.employeeName}</div>
+            </div>
+            <div>
+              <div className="ps-info-label">EMPLOYEE CODE</div>
+              <div className="ps-info-value">{selected.employeeCode}</div>
+            </div>
+            <div>
+              <div className="ps-info-label">PRESENT DAYS</div>
+              <div className="ps-info-value">{selected.presentDays} days</div>
+            </div>
+            <div>
+              <div className="ps-info-label">LOP DAYS</div>
+              <div className="ps-info-value">{selected.lopDays} days</div>
             </div>
           </div>
         </div>
 
-        {/* Net Salary */}
-        <div style={{
-          background: 'linear-gradient(135deg, #f0fdf4, #dcfce7)',
-          border: '1px solid #bbf7d0',
-          borderRadius: '10px', padding: '16px 20px',
-          display: 'flex', justifyContent: 'space-between',
-          alignItems: 'center', marginBottom: '16px',
-        }}>
-          <div>
-            <div style={{ fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '600', marginBottom: '4px' }}>NET SALARY</div>
-            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Equal to Gross Salary</div>
-          </div>
-          <div style={{ fontSize: '28px', fontWeight: '900', color: '#16a34a' }}>
-            {formatCurrency(selected.netSalary)}
-          </div>
-        </div>
+        {/* Body */}
+        <div className="ps-body">
+          <div className="ps-section-title">Earnings</div>
 
-        {/* Download Button */}
-        <button
-          onClick={handleDownload}
-          disabled={downloading}
-          style={{
-            width: '100%', padding: '12px',
-            background: '#1e3a5f', color: 'white',
-            border: 'none', borderRadius: '10px',
-            fontSize: '14px', fontWeight: '700',
-            cursor: downloading ? 'not-allowed' : 'pointer',
-            opacity: downloading ? 0.7 : 1,
-            display: 'flex', alignItems: 'center',
-            justifyContent: 'center', gap: '8px',
-          }}
-        >
-          {downloading ? <><Loader2 size={16} className="animate-spin" style={{ display: 'inline', marginRight: '6px' }} /> Downloading...</> : <><Download size={16} style={{ display: 'inline', marginRight: '6px' }} /> Download Payslip PDF</>}
-        </button>
+          {earningsList.map((item) => (
+            <div key={item.label} className="ps-line">
+              <span>{item.label}</span>
+              <span>{formatCurrency(item.value)}</span>
+            </div>
+          ))}
+
+          <div className="ps-gross">
+            <span>Gross Salary</span>
+            <span className="ps-gross-value">{formatCurrency(selected.grossSalary)}</span>
+          </div>
+
+          <div className="ps-net">
+            <div>
+              <div className="ps-net-label">NET SALARY</div>
+              <div className="ps-net-hint">Equal to Gross Salary</div>
+            </div>
+            <div className="ps-net-value">{formatCurrency(selected.netSalary)}</div>
+          </div>
+
+          <button type="button" className="ps-download" onClick={handleDownload} disabled={downloading}>
+            {downloading ? (
+              <>
+                <Loader2 size={16} className="animate-spin" /> Downloading...
+              </>
+            ) : (
+              <>
+                <Download size={16} /> Download Payslip PDF
+              </>
+            )}
+          </button>
+        </div>
       </div>
     </div>
   );
 }
 
+/* ============================================================
+   PAGE
+============================================================ */
+
 export default function PayslipsPage() {
   const [payslips, setPayslips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [loadingNumber, setLoadingNumber] = useState(null);
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
     let active = true;
+
     const fetchPayslips = async () => {
       try {
         const res = await getMyPayslips(page, 10);
+
         if (active) {
           const data = res.data?.data;
           setPayslips(data?.content || []);
@@ -331,31 +403,43 @@ export default function PayslipsPage() {
         }
       } catch (err) {
         console.error('Error fetching payslips:', err);
+
         if (active) {
           toast.error(err?.response?.data?.message || 'Failed to load payslips');
           setLoading(false);
         }
       }
     };
+
     fetchPayslips();
-    return () => { active = false; };
+
+    return () => {
+      active = false;
+    };
   }, [page]);
 
   const fetchDetail = async (payslipNumber) => {
-    setLoadingDetail(true);
+    setLoadingNumber(payslipNumber);
+
     try {
       const res = await api.get(`/api/payslips/${payslipNumber}`);
       setSelected(res.data?.data);
+
+      // On phones the detail replaces the list, so bring it to the top
+      if (typeof window !== 'undefined' && window.innerWidth <= 900) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
     } catch (err) {
       console.error('Error fetching payslip details:', err);
       toast.error(err?.response?.data?.message || 'Failed to load payslip details');
     } finally {
-      setLoadingDetail(false);
+      setLoadingNumber(null);
     }
   };
 
   const formatCurrency = (amount) => {
     if (!amount && amount !== 0) return '—';
+
     return new Intl.NumberFormat('en-IN', {
       style: 'currency',
       currency: 'INR',
@@ -364,33 +448,33 @@ export default function PayslipsPage() {
   };
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ marginBottom: '24px' }}>
-        <h1 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '4px' }}>
-          My Payslips
-        </h1>
-        <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-          View and download your monthly payslips
-        </p>
+    <div className="ps-root">
+      <style dangerouslySetInnerHTML={{ __html: payslipCSS }} />
+
+      <div className="ps-head">
+        <h1 className="ps-title">My Payslips</h1>
+        <p className="ps-subtitle">View and download your monthly payslips</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 1.4fr' : '1fr', gap: '20px' }}>
+      <div className={'ps-layout' + (selected ? ' has-selected' : '')}>
         <PayslipListView
           loading={loading}
           payslips={payslips}
           selected={selected}
+          loadingNumber={loadingNumber}
           onSelect={fetchDetail}
           page={page}
           totalPages={totalPages}
           setPage={setPage}
           formatCurrency={formatCurrency}
         />
+
         {selected && (
           <PayslipDetailView
             selected={selected}
-            loadingDetail={loadingDetail}
+            loadingDetail={loadingNumber !== null}
             formatCurrency={formatCurrency}
+            onBack={() => setSelected(null)}
           />
         )}
       </div>

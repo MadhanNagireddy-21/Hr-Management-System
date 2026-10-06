@@ -45,10 +45,14 @@ function DocumentRow({ documentKey, doc, onUpload, isUploading, highlighted }) {
     const canUpload = !status || status === 'REJECTED' || status === 'REUPLOAD_REQUIRED';
     const isRejected = status === 'REJECTED';
     const isReuploadRequired = status === 'REUPLOAD_REQUIRED';
+    const fileHref = doc?.fileUrl?.startsWith('/')
+        ? `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'}${doc.fileUrl}`
+        : doc?.fileUrl;
 
     return (
         <div
             id={doc?.id ? `doc-${doc.id}` : undefined}
+            className="doc-card"
             style={{
                 background: 'var(--card-bg)', borderRadius: '14px',
                 border: highlighted ? '2px solid #4f46e5' : (isRejected ? '1.5px solid #fecaca' : '1px solid #e2e8f0'),
@@ -56,54 +60,62 @@ function DocumentRow({ documentKey, doc, onUpload, isUploading, highlighted }) {
                 padding: '18px 20px', marginBottom: '12px',
                 transition: 'box-shadow 0.3s, border-color 0.3s',
             }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5', flexShrink: 0 }}>
-                    <FileText size={20} strokeWidth={1.5} />
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                        {DOC_KEY_LABELS[documentKey]}
+            <div className="doc-row">
+                <div className="doc-main">
+                    <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4f46e5', flexShrink: 0 }}>
+                        <FileText size={20} strokeWidth={1.5} />
                     </div>
-                    {doc?.fileName && (
-                        <div style={{ fontSize: '12px', color: '#3b82f6', marginTop: '2px' }}>
-                            {doc.fileUrl ? (
-                                <a href={doc.fileUrl?.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'}${doc.fileUrl}` : doc.fileUrl} target="_blank" rel="noreferrer" style={{ color: '#3b82f6' }}>{doc.fileName}</a>
-                            ) : doc.fileName}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                            {DOC_KEY_LABELS[documentKey]}
                         </div>
-                    )}
+                        {doc?.fileName && (
+                            <div className="doc-filename" style={{ fontSize: '12px', color: '#3b82f6', marginTop: '2px' }}>
+                                {fileHref ? (
+                                    <a href={fileHref} target="_blank" rel="noreferrer" style={{ color: '#3b82f6' }}>{doc.fileName}</a>
+                                ) : doc.fileName}
+                            </div>
+                        )}
+                    </div>
                 </div>
-                <StatusPill status={status} />
-                <input
-                    ref={inputRef}
-                    type="file"
-                    style={{ display: 'none' }}
-                    onChange={e => {
-                        const file = e.target.files?.[0];
-                        if (file) onUpload(documentKey, file);
-                        e.target.value = '';
-                    }}
-                />
-                <button
-                    onClick={() => inputRef.current?.click()}
-                    disabled={!canUpload || isUploading}
-                    style={{
-                        padding: '10px 20px', borderRadius: '10px', border: 'none',
-                        fontSize: '13px', fontWeight: '700', whiteSpace: 'nowrap',
-                        background: !canUpload ? '#e2e8f0' : (isRejected || isReuploadRequired) ? '#fee2e2' : '#eff6ff',
-                        color: !canUpload ? '#94a3b8' : (isRejected || isReuploadRequired) ? '#dc2626' : '#3b82f6',
-                        cursor: (!canUpload || isUploading) ? 'not-allowed' : 'pointer',
-                    }}>
-                    {isUploading ? <><Loader2 size={12} className="animate-spin" style={{ display: 'inline', marginRight: '4px' }} /> Uploading...</> : (isRejected || isReuploadRequired) ? 'Re-upload' : 'Upload'}
-                </button>
+
+                <div className="doc-actions">
+                    <StatusPill status={status} />
+                    <input
+                        ref={inputRef}
+                        type="file"
+                        style={{ display: 'none' }}
+                        onChange={e => {
+                            const file = e.target.files?.[0];
+                            if (file) onUpload(documentKey, file);
+                            e.target.value = '';
+                        }}
+                    />
+                    <button
+                        className="doc-btn"
+                        onClick={() => inputRef.current?.click()}
+                        disabled={!canUpload || isUploading}
+                        style={{
+                            padding: '10px 20px', borderRadius: '10px', border: 'none',
+                            fontSize: '13px', fontWeight: '700', whiteSpace: 'nowrap',
+                            background: !canUpload ? '#e2e8f0' : (isRejected || isReuploadRequired) ? '#fee2e2' : '#eff6ff',
+                            color: !canUpload ? '#94a3b8' : (isRejected || isReuploadRequired) ? '#dc2626' : '#3b82f6',
+                            cursor: (!canUpload || isUploading) ? 'not-allowed' : 'pointer',
+                        }}>
+                        {isUploading
+                            ? <><Loader2 size={12} className="animate-spin" style={{ display: 'inline', marginRight: '4px' }} /> Uploading...</>
+                            : (isRejected || isReuploadRequired) ? 'Re-upload' : 'Upload'}
+                    </button>
+                </div>
             </div>
 
             {isRejected && doc?.rejectionRemarks && (
-                <div style={{
-                    marginTop: '12px', marginLeft: '62px',
+                <div className="doc-remark" style={{
+                    marginTop: '12px', marginLeft: '56px',
                     background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '10px',
                     padding: '10px 14px',
                 }}>
-                    <div style={{ fontSize: '13px', color: '#dc2626' }}>
+                    <div style={{ fontSize: '13px', color: '#dc2626', overflowWrap: 'anywhere' }}>
                         <MessageSquare size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} /> {doc.rejectionRemarks}
                     </div>
                 </div>
@@ -111,6 +123,27 @@ function DocumentRow({ documentKey, doc, onUpload, isUploading, highlighted }) {
         </div>
     );
 }
+
+const PAGE_STYLES = `
+    .doc-row { display: flex; align-items: center; gap: 16px; }
+    .doc-main { display: flex; align-items: center; gap: 16px; flex: 1; min-width: 0; }
+    .doc-actions { display: flex; align-items: center; gap: 16px; flex-shrink: 0; }
+    .doc-filename { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .doc-filename a { overflow-wrap: anywhere; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .animate-spin { animation: spin 1s linear infinite; }
+
+    @media (max-width: 640px) {
+        .doc-card { padding: 14px !important; }
+        .doc-row { flex-direction: column; align-items: stretch; gap: 12px; }
+        .doc-main { gap: 12px; }
+        .doc-filename { white-space: normal; }
+        .doc-actions { justify-content: space-between; gap: 10px; }
+        .doc-btn { flex: 1; max-width: 160px; padding: 10px 14px !important; }
+        .doc-remark { margin-left: 0 !important; }
+    }
+`;
 
 export default function EmployeeOnboardingDocumentsPage() {
     const searchParams = useSearchParams();
@@ -184,6 +217,8 @@ export default function EmployeeOnboardingDocumentsPage() {
 
     return (
         <div>
+            <style>{PAGE_STYLES}</style>
+
             <div style={{ marginBottom: '24px' }}>
                 <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '4px' }}>
                     My Documents
