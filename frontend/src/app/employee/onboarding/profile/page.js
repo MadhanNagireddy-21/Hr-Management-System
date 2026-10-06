@@ -12,7 +12,7 @@ function StatusPill({ status }) {
     };
     const s = map[status] || map.PENDING;
     return (
-        <span style={{ background: s.bg, color: s.color, padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+        <span style={{ background: s.bg, color: s.color, padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}>
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: s.color }} />
             {s.label}
         </span>
@@ -21,15 +21,32 @@ function StatusPill({ status }) {
 
 function InfoField({ icon, label, value }) {
     return (
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '20px' }}>
-            <span style={{ fontSize: '15px', color: 'var(--text-muted)', marginTop: '2px' }}>{icon}</span>
-            <div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', marginBottom: '20px', minWidth: 0 }}>
+            <span style={{ fontSize: '15px', color: 'var(--text-muted)', marginTop: '2px', flexShrink: 0 }}>{icon}</span>
+            <div style={{ minWidth: 0, flex: 1 }}>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '2px' }}>{label}</div>
-                <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: '500' }}>{value || '—'}</div>
+                <div style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: '500', overflowWrap: 'anywhere' }}>{value || '—'}</div>
             </div>
         </div>
     );
 }
+
+const PAGE_STYLES = `
+    .profile-grid { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 20px; align-items: start; }
+    .profile-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; }
+
+    @media (max-width: 900px) {
+        .profile-grid { grid-template-columns: 220px minmax(0, 1fr); }
+        .profile-info-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 640px) {
+        .profile-grid { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+        .profile-info-grid { grid-template-columns: 1fr; }
+        .profile-card { padding: 20px 16px !important; }
+        .profile-title { font-size: 20px !important; }
+    }
+`;
 
 export default function EmployeeOnboardingProfilePage() {
     const [onboarding, setOnboarding] = useState(null);
@@ -55,18 +72,26 @@ export default function EmployeeOnboardingProfilePage() {
 
     if (!onboarding) {
         return (
-            <div style={{ background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--card-border)', padding: '60px', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+            <div style={{ background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--card-border)', padding: '60px 20px', textAlign: 'center', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
                 <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>Profile not available yet</div>
             </div>
         );
     }
 
-    const initials = onboarding.employeeName?.split(' ').map(n => n[0]).join('').slice(0, 2);
+    const initials = (onboarding.employeeName || '')
+        .split(' ')
+        .filter(Boolean)
+        .map(n => n[0])
+        .join('')
+        .slice(0, 2)
+        .toUpperCase();
 
     return (
         <div>
+            <style>{PAGE_STYLES}</style>
+
             <div style={{ marginBottom: '24px' }}>
-                <h1 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                <h1 className="profile-title" style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '4px' }}>
                     My Profile
                 </h1>
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
@@ -74,9 +99,9 @@ export default function EmployeeOnboardingProfilePage() {
                 </p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: '20px', alignItems: 'start' }}>
+            <div className="profile-grid">
                 {/* Left card */}
-                <div style={{ background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--card-border)', padding: '28px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', textAlign: 'center' }}>
+                <div className="profile-card" style={{ background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--card-border)', padding: '28px 20px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', textAlign: 'center', minWidth: 0 }}>
                     <div style={{
                         width: '90px', height: '90px', borderRadius: '18px', margin: '0 auto 16px',
                         background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
@@ -85,26 +110,26 @@ export default function EmployeeOnboardingProfilePage() {
                     }}>
                         {initials}
                     </div>
-                    <div style={{ fontSize: '17px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '2px' }}>
+                    <div style={{ fontSize: '17px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '2px', overflowWrap: 'anywhere' }}>
                         {onboarding.employeeName}
                     </div>
-                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '14px' }}>
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '14px', overflowWrap: 'anywhere' }}>
                         {onboarding.employeeDesignation || '—'}
                     </div>
                     <div style={{ marginBottom: '10px' }}>
                         <StatusPill status={onboarding.status} />
                     </div>
-                    <span style={{ display: 'inline-block', background: 'var(--card-border)', color: 'var(--text-secondary)', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
+                    <span style={{ display: 'inline-block', background: 'var(--card-border)', color: 'var(--text-secondary)', padding: '4px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', overflowWrap: 'anywhere' }}>
                         {onboarding.employeeCode}
                     </span>
                 </div>
 
                 {/* Right info panel */}
-                <div style={{ background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--card-border)', padding: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                <div className="profile-card" style={{ background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--card-border)', padding: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', minWidth: 0 }}>
                     <div style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '20px' }}>
                         Contact & Personal Information
                     </div>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+                    <div className="profile-info-grid">
                         <InfoField icon={<Mail size={18} />} label="Email" value={onboarding.employeeEmail} />
                         <InfoField icon={<Phone size={18} />} label="Phone" value={onboarding.employeePhone} />
                         <InfoField icon={<Building2 size={18} />} label="Department" value={onboarding.department} />

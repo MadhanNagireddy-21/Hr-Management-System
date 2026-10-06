@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import api from "@/lib/axios";
+import toast from "react-hot-toast";
 import {
     Users,
     Search,
@@ -13,1107 +14,493 @@ import {
     Clock3,
     CheckCircle2,
     XCircle,
-    ChevronDown,
     UserRound,
+    ExternalLink,
+    Loader2,
 } from "lucide-react";
+
+/* ============================================================
+   CSS
+============================================================ */
+
+const referralsCSS = `
+.rf-root { width: 100%; max-width: 1100px; margin: 0 auto; min-width: 0; color: var(--text-primary); }
+.rf-root *, .rf-root *::before, .rf-root *::after { box-sizing: border-box; }
+
+/* ---------- header ---------- */
+.rf-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+.rf-crumb { font-size: 12px; font-weight: 500; color: var(--text-muted, var(--text-secondary)); margin-bottom: 6px; }
+.rf-title { font-size: 26px; font-weight: 800; margin: 0 0 4px; letter-spacing: -.2px; }
+.rf-subtitle { font-size: 14px; color: var(--text-secondary); margin: 0; }
+.rf-refresh {
+  width: 42px; height: 42px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+  border-radius: 12px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-secondary); cursor: pointer;
+  transition: color .2s, border-color .2s;
+}
+.rf-refresh:hover { color: #3b82f6; border-color: #3b82f6; }
+.rf-refresh:disabled { cursor: wait; }
+
+/* ---------- summary ---------- */
+.rf-summary { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; margin-bottom: 20px; }
+.rf-sum { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 16px 18px; border-radius: 16px; background: var(--card-bg); border: 1px solid var(--card-border); box-shadow: var(--card-shadow); min-width: 0; }
+.rf-sum-label { font-size: 12px; font-weight: 500; color: var(--text-secondary); }
+.rf-sum-value { font-size: 26px; font-weight: 800; line-height: 1.1; margin-top: 6px; }
+.rf-sum-icon { width: 42px; height: 42px; border-radius: 12px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+
+/* ---------- filters ---------- */
+.rf-filters { display: flex; gap: 12px; align-items: center; margin-bottom: 22px; padding: 12px; border-radius: 16px; background: var(--card-bg); border: 1px solid var(--card-border); }
+.rf-search { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; border-radius: 12px; background: var(--bg-primary); border: 1px solid var(--card-border); }
+.rf-search:focus-within { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.18); }
+.rf-search input { flex: 1; min-width: 0; border: none; outline: none; background: transparent; color: var(--text-primary); font-size: 14px; font-family: inherit; }
+.rf-search input::placeholder { color: var(--text-secondary); }
+.rf-clear { display: flex; border: none; background: none; color: var(--text-secondary); cursor: pointer; padding: 4px; }
+.rf-chips { display: flex; gap: 8px; flex-shrink: 0; }
+.rf-chip {
+  display: inline-flex; align-items: center; gap: 6px; height: 40px; padding: 0 14px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--card-border); background: var(--bg-primary); color: var(--text-secondary); font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.rf-chip b { font-size: 11px; padding: 1px 7px; border-radius: 999px; background: rgba(148,163,184,.2); font-weight: 700; }
+.rf-chip.active { background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.45); color: #2563eb; }
+.rf-chip.active b { background: rgba(59,130,246,.22); }
+html.dark .rf-chip.active { color: #60a5fa; }
+
+/* ---------- list header ---------- */
+.rf-list-head { margin-bottom: 14px; }
+.rf-list-title { font-size: 18px; font-weight: 700; margin: 0; }
+.rf-list-sub { font-size: 12px; color: var(--text-secondary); margin-top: 3px; }
+
+/* ---------- card ---------- */
+.rf-list { display: flex; flex-direction: column; gap: 16px; }
+.rf-card { padding: 22px; border-radius: 18px; background: var(--card-bg); border: 1px solid var(--card-border); box-shadow: var(--card-shadow); min-width: 0; transition: border-color .2s, transform .2s; }
+.rf-card:hover { border-color: rgba(59,130,246,.4); transform: translateY(-1px); }
+.rf-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; }
+.rf-who { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.rf-avatar { width: 46px; height: 46px; border-radius: 14px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: rgba(59,130,246,.12); color: #3b82f6; }
+.rf-name { font-size: 17px; font-weight: 700; margin: 0; word-break: break-word; }
+.rf-job { display: flex; align-items: center; gap: 6px; margin-top: 4px; font-size: 13px; color: var(--text-secondary); }
+.rf-job span { min-width: 0; word-break: break-word; }
+
+.rf-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; border: 1px solid; white-space: nowrap; flex-shrink: 0; }
+.rf-pill.pending  { background: rgba(245,158,11,.12); color: #b45309; border-color: rgba(245,158,11,.35); }
+.rf-pill.approved { background: rgba(16,185,129,.12); color: #047857; border-color: rgba(16,185,129,.35); }
+.rf-pill.rejected { background: rgba(239,68,68,.12);  color: #b91c1c; border-color: rgba(239,68,68,.35); }
+html.dark .rf-pill.pending  { color: #fbbf24; }
+html.dark .rf-pill.approved { color: #34d399; }
+html.dark .rf-pill.rejected { color: #f87171; }
+
+.rf-details { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 16px; margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--card-border); }
+.rf-detail { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+.rf-detail svg { margin-top: 2px; color: var(--text-secondary); flex-shrink: 0; }
+.rf-detail-label { font-size: 11px; font-weight: 500; color: var(--text-secondary); }
+.rf-detail-value { font-size: 13.5px; font-weight: 600; margin-top: 3px; word-break: break-all; }
+.rf-detail-value.soft { word-break: normal; }
+
+.rf-resume {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 18px; min-height: 42px; padding: 0 16px;
+  border-radius: 10px; border: 1px solid rgba(59,130,246,.4); background: rgba(59,130,246,.08); color: #2563eb; font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.rf-resume:disabled { opacity: .7; cursor: wait; }
+html.dark .rf-resume { color: #60a5fa; }
+
+.rf-msg { display: flex; align-items: center; gap: 10px; margin-top: 16px; padding: 12px 14px; border-radius: 12px; font-size: 13px; font-weight: 600; border: 1px solid; }
+.rf-msg svg { flex-shrink: 0; }
+.rf-msg.pending  { background: rgba(245,158,11,.09); color: #b45309; border-color: rgba(245,158,11,.28); }
+.rf-msg.approved { background: rgba(16,185,129,.09); color: #047857; border-color: rgba(16,185,129,.28); }
+.rf-msg.rejected { background: rgba(239,68,68,.09);  color: #b91c1c; border-color: rgba(239,68,68,.28); }
+html.dark .rf-msg.pending  { color: #fbbf24; }
+html.dark .rf-msg.approved { color: #34d399; }
+html.dark .rf-msg.rejected { color: #f87171; }
+
+/* ---------- empty / loading ---------- */
+.rf-empty { padding: 56px 20px; text-align: center; border-radius: 18px; background: var(--card-bg); border: 1px solid var(--card-border); box-shadow: var(--card-shadow); }
+.rf-empty-icon { width: 56px; height: 56px; border-radius: 16px; margin: 0 auto 14px; display: flex; align-items: center; justify-content: center; background: rgba(148,163,184,.15); color: var(--text-secondary); }
+.rf-empty h3 { font-size: 16px; font-weight: 700; margin: 0 0 4px; }
+.rf-empty p { font-size: 13px; color: var(--text-secondary); margin: 0; }
+.rf-empty button { margin-top: 14px; border: none; background: none; color: #3b82f6; font-size: 14px; font-weight: 700; cursor: pointer; }
+.rf-loading { padding: 80px 20px; text-align: center; color: var(--text-secondary); font-size: 14px; }
+
+/* =========================================================
+   TABLET (<= 900px)
+   ========================================================= */
+@media (max-width: 900px) {
+  .rf-summary { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .rf-filters { flex-direction: column; align-items: stretch; }
+  .rf-chips { overflow-x: auto; scrollbar-width: none; margin: 0 -2px; padding: 0 2px; -webkit-overflow-scrolling: touch; }
+  .rf-chips::-webkit-scrollbar { display: none; }
+  .rf-details { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+
+/* =========================================================
+   PHONE (<= 600px)
+   ========================================================= */
+@media (max-width: 600px) {
+  .rf-head { margin-bottom: 16px; }
+  .rf-title { font-size: 21px; }
+  .rf-subtitle { font-size: 13px; }
+
+  .rf-summary { gap: 10px; margin-bottom: 14px; }
+  .rf-sum { padding: 12px 14px; border-radius: 14px; }
+  .rf-sum-value { font-size: 22px; margin-top: 4px; }
+  .rf-sum-icon { width: 36px; height: 36px; border-radius: 10px; }
+
+  .rf-filters { padding: 10px; gap: 10px; margin-bottom: 16px; border-radius: 14px; }
+  .rf-search input { font-size: 16px; } /* stops iOS zoom on focus */
+
+  .rf-card { padding: 16px; border-radius: 16px; }
+  .rf-top { flex-direction: column; gap: 12px; }
+  .rf-avatar { width: 42px; height: 42px; border-radius: 12px; }
+  .rf-name { font-size: 16px; }
+
+  .rf-details { grid-template-columns: minmax(0,1fr); gap: 12px; margin-top: 14px; padding-top: 14px; }
+  .rf-detail { padding: 10px 12px; border-radius: 12px; background: var(--bg-primary); align-items: center; }
+  .rf-detail svg { margin-top: 0; }
+
+  .rf-resume { width: 100%; }
+  .rf-msg { font-size: 12.5px; padding: 11px 12px; }
+}
+`;
+
+/* ============================================================
+   STATUS HELPERS
+============================================================ */
+
+const STATUS = {
+    APPLIED: { cls: "pending", text: "Pending", icon: Clock3, msg: "Your referral is waiting for HR review." },
+    SHORTLISTED: { cls: "approved", text: "Approved", icon: CheckCircle2, msg: "HR has approved this candidate." },
+    REJECTED: { cls: "rejected", text: "Rejected", icon: XCircle, msg: "HR has rejected this candidate." },
+};
+
+const getStatus = (status) => STATUS[status] || { ...STATUS.APPLIED, text: status || "Pending" };
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/* ============================================================
+   PAGE
+============================================================ */
 
 export default function MyReferrals() {
     const [referrals, setReferrals] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [refreshing, setRefreshing] = useState(false);
     const [search, setSearch] = useState("");
     const [statusFilter, setStatusFilter] = useState("ALL");
+    const [openingId, setOpeningId] = useState(null);
 
-    // =========================
-    // VIEW RESUME
-    // =========================
-    const handleViewResume = async (e, resumeUrl) => {
-        e.preventDefault();
+    /* ---------- view resume ---------- */
+
+    const handleViewResume = async (referral) => {
+        // Open the tab synchronously so mobile browsers don't block it as a popup
+        const win = window.open("", "_blank");
+
+        setOpeningId(referral.id);
 
         try {
-            const url = resumeUrl.startsWith("http")
-                ? new URL(resumeUrl).pathname
-                : resumeUrl;
+            const resumeUrl = referral.resumeUrl;
+            const url = resumeUrl.startsWith("http") ? new URL(resumeUrl).pathname : resumeUrl;
 
-            const res = await api.get(url, {
-                responseType: "blob",
-            });
+            const res = await api.get(url, { responseType: "blob" });
+            const contentType = res.headers["content-type"] || "application/pdf";
+            const blob = new Blob([res.data], { type: contentType });
+            const blobUrl = window.URL.createObjectURL(blob);
 
-            const contentType =
-                res.headers["content-type"] ||
-                "application/pdf";
+            if (win) {
+                win.location.replace(blobUrl);
+            } else {
+                window.location.assign(blobUrl);
+            }
 
-            const blob = new Blob([res.data], {
-                type: contentType,
-            });
-
-            const blobUrl =
-                window.URL.createObjectURL(blob);
-
-            window.open(blobUrl, "_blank");
+            setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60000);
         } catch (err) {
             console.error(err);
-            alert("Failed to open resume");
+            if (win) win.close();
+            toast.error("Failed to open resume");
+        } finally {
+            setOpeningId(null);
         }
     };
 
-    // =========================
-    // GET MY REFERRALS
-    // =========================
-    const fetchMyReferrals = async () => {
+    /* ---------- fetch ---------- */
+
+    const fetchMyReferrals = async (isRefresh = false) => {
         try {
-            setLoading(true);
+            if (isRefresh) setRefreshing(true);
+            else setLoading(true);
 
-            const res = await api.get(
-                "/api/recruitment/my-referrals"
-            );
-
-            setReferrals(
-                res.data?.data?.content ||
-                res.data?.data ||
-                []
-            );
+            const res = await api.get("/api/recruitment/my-referrals");
+            setReferrals(res.data?.data?.content || res.data?.data || []);
         } catch (error) {
-            console.error(
-                "Error fetching referrals:",
-                error
-            );
-
+            console.error("Error fetching referrals:", error);
             setReferrals([]);
+            toast.error("Failed to load referrals");
         } finally {
             setLoading(false);
+            setRefreshing(false);
         }
     };
 
-    // =========================
-    // LOAD REFERRALS
-    // =========================
     useEffect(() => {
         fetchMyReferrals();
     }, []);
 
-    // =========================
-    // STATUS TEXT
-    // =========================
-    const getStatusText = (status) => {
-        if (status === "APPLIED") {
-            return "Pending";
-        }
+    /* ---------- filter ---------- */
 
-        if (status === "SHORTLISTED") {
-            return "Approved";
-        }
-
-        if (status === "REJECTED") {
-            return "Rejected";
-        }
-
-        return status || "Pending";
-    };
-
-    // =========================
-    // STATUS STYLE
-    // =========================
-    const getStatusStyle = (status) => {
-        if (status === "SHORTLISTED") {
-            return {
-                background: "#ecfdf5",
-                color: "#047857",
-                border: "#a7f3d0",
-            };
-        }
-
-        if (status === "REJECTED") {
-            return {
-                background: "#fef2f2",
-                color: "#b91c1c",
-                border: "#fecaca",
-            };
-        }
-
-        return {
-            background: "#fffbeb",
-            color: "#b45309",
-            border: "#fde68a",
-        };
-    };
-
-    // =========================
-    // STATUS ICON
-    // =========================
-    const getStatusIcon = (status) => {
-        if (status === "SHORTLISTED") {
-            return <CheckCircle2 size={14} />;
-        }
-
-        if (status === "REJECTED") {
-            return <XCircle size={14} />;
-        }
-
-        return <Clock3 size={14} />;
-    };
-
-    // =========================
-    // FILTER REFERRALS
-    // =========================
     const filteredReferrals = useMemo(() => {
         const value = search.trim().toLowerCase();
 
-        return referrals.filter((referral) => {
-            const candidateName = String(
-                referral?.candidateName || ""
-            ).toLowerCase();
-
-            const candidateEmail = String(
-                referral?.candidateEmail || ""
-            ).toLowerCase();
-
-            const candidatePhone = String(
-                referral?.candidatePhone || ""
-            ).toLowerCase();
-
-            const jobTitle = String(
-                referral?.jobTitle || ""
-            ).toLowerCase();
-
+        return referrals.filter((r) => {
             const matchesSearch =
                 !value ||
-                candidateName.includes(value) ||
-                candidateEmail.includes(value) ||
-                candidatePhone.includes(value) ||
-                jobTitle.includes(value);
+                [r?.candidateName, r?.candidateEmail, r?.candidatePhone, r?.jobTitle].some((f) =>
+                    String(f || "").toLowerCase().includes(value)
+                );
 
-            const matchesStatus =
-                statusFilter === "ALL" ||
-                referral?.status === statusFilter;
+            const matchesStatus = statusFilter === "ALL" || r?.status === statusFilter;
 
             return matchesSearch && matchesStatus;
         });
     }, [referrals, search, statusFilter]);
 
-    // =========================
-    // COUNTS
-    // =========================
-    const pendingCount = referrals.filter(
-        (item) => item?.status === "APPLIED"
-    ).length;
+    /* ---------- counts ---------- */
 
-    const approvedCount = referrals.filter(
-        (item) => item?.status === "SHORTLISTED"
-    ).length;
+    const pendingCount = referrals.filter((i) => i?.status === "APPLIED").length;
+    const approvedCount = referrals.filter((i) => i?.status === "SHORTLISTED").length;
+    const rejectedCount = referrals.filter((i) => i?.status === "REJECTED").length;
 
-    const rejectedCount = referrals.filter(
-        (item) => item?.status === "REJECTED"
-    ).length;
+    const SUMMARY = [
+        { label: "Total Referrals", value: referrals.length, icon: Users, color: "#3b82f6" },
+        { label: "Pending", value: pendingCount, icon: Clock3, color: "#f59e0b" },
+        { label: "Approved", value: approvedCount, icon: CheckCircle2, color: "#10b981" },
+        { label: "Rejected", value: rejectedCount, icon: XCircle, color: "#ef4444" },
+    ];
 
-    // =========================
-    // LOADING
-    // =========================
+    const CHIPS = [
+        { key: "ALL", label: "All", count: referrals.length },
+        { key: "APPLIED", label: "Pending", count: pendingCount },
+        { key: "SHORTLISTED", label: "Approved", count: approvedCount },
+        { key: "REJECTED", label: "Rejected", count: rejectedCount },
+    ];
+
+    /* ---------- render ---------- */
+
     if (loading) {
         return (
-            <>
-                <style jsx global>{`
-                    .referrals-page {
-                        min-height: 100vh;
-                        background: #f8fafc;
-                    }
-
-                    .dark .referrals-page {
-                        background: #0b1220;
-                    }
-
-                    .loading-card {
-                        background: #ffffff;
-                        border: 1px solid #e2e8f0;
-                    }
-
-                    .dark .loading-card {
-                        background: #111827;
-                        border-color: #243047;
-                    }
-                `}</style>
-
-                <div className="referrals-page min-h-screen p-6 md:p-8">
-                    <div className="loading-card flex min-h-[300px] items-center justify-center rounded-2xl border">
-                        <div className="text-center">
-                            <RefreshCw
-                                size={28}
-                                className="mx-auto mb-3 animate-spin text-blue-600 dark:text-blue-400"
-                            />
-
-                            <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
-                                Loading referrals...
-                            </p>
-                        </div>
-                    </div>
+            <div className="rf-root">
+                <style dangerouslySetInnerHTML={{ __html: referralsCSS }} />
+                <div className="rf-loading">
+                    <RefreshCw size={28} className="animate-spin" style={{ margin: "0 auto 12px", color: "#3b82f6" }} />
+                    Loading referrals...
                 </div>
-            </>
+            </div>
         );
     }
 
     return (
-        <>
-            <style jsx global>{`
-                /* =====================================
-                   PAGE
-                ===================================== */
-
-                .referrals-page {
-                    min-height: 100vh;
-                    background: #f8fafc;
-                    color: #0f172a;
-                }
-
-                .dark .referrals-page {
-                    background: #0b1220;
-                    color: #f8fafc;
-                }
-
-                /* =====================================
-                   HEADER
-                ===================================== */
-
-                .breadcrumb {
-                    color: #64748b;
-                }
-
-                .dark .breadcrumb {
-                    color: #64748b;
-                }
-
-                .page-title {
-                    color: #0f172a;
-                }
-
-                .dark .page-title {
-                    color: #f8fafc;
-                }
-
-                .page-description {
-                    color: #64748b;
-                }
-
-                .dark .page-description {
-                    color: #94a3b8;
-                }
-
-                /* =====================================
-                   REFRESH BUTTON
-                ===================================== */
-
-                .refresh-button {
-                    background: #ffffff;
-                    border: 1px solid #e2e8f0;
-                    color: #64748b;
-                }
-
-                .dark .refresh-button {
-                    background: #111827;
-                    border-color: #243047;
-                    color: #94a3b8;
-                }
-
-                .refresh-button:hover {
-                    border-color: #2563eb;
-                    color: #2563eb;
-                }
-
-                .dark .refresh-button:hover {
-                    border-color: #3b82f6;
-                    color: #60a5fa;
-                }
-
-                /* =====================================
-                   SUMMARY CARDS
-                ===================================== */
-
-                .summary-card {
-                    background: #ffffff;
-                    border: 1px solid #e2e8f0;
-                    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.035);
-                }
-
-                .dark .summary-card {
-                    background: #111827;
-                    border-color: #243047;
-                    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.18);
-                }
-
-                .summary-label {
-                    color: #64748b;
-                }
-
-                .dark .summary-label {
-                    color: #94a3b8;
-                }
-
-                .summary-value {
-                    color: #0f172a;
-                }
-
-                .dark .summary-value {
-                    color: #f8fafc;
-                }
-
-                /* =====================================
-                   SEARCH AREA
-                ===================================== */
-
-                .filter-card {
-                    background: #ffffff;
-                    border: 1px solid #e2e8f0;
-                }
-
-                .dark .filter-card {
-                    background: #111827;
-                    border-color: #243047;
-                }
-
-                .search-box {
-                    background: #f8fafc;
-                    border: 1px solid #e2e8f0;
-                }
-
-                .dark .search-box {
-                    background: #0f172a;
-                    border-color: #2b3850;
-                }
-
-                .search-input {
-                    background: transparent;
-                    color: #0f172a;
-                    outline: none;
-                }
-
-                .dark .search-input {
-                    color: #f8fafc;
-                }
-
-                .search-input::placeholder {
-                    color: #94a3b8;
-                }
-
-                .filter-select {
-                    background: #f8fafc;
-                    color: #334155;
-                    border: 1px solid #e2e8f0;
-                    outline: none;
-                }
-
-                .dark .filter-select {
-                    background: #0f172a;
-                    color: #cbd5e1;
-                    border-color: #2b3850;
-                }
-
-                /* =====================================
-                   SECTION
-                ===================================== */
-
-                .section-title {
-                    color: #0f172a;
-                }
-
-                .dark .section-title {
-                    color: #f8fafc;
-                }
-
-                .section-description {
-                    color: #64748b;
-                }
-
-                .dark .section-description {
-                    color: #94a3b8;
-                }
-
-                /* =====================================
-                   REFERRAL CARD
-                ===================================== */
-
-                .referral-card {
-                    background: #ffffff;
-                    border: 1px solid #e2e8f0;
-                    box-shadow: 0 4px 14px rgba(15, 23, 42, 0.035);
-                    transition: all 0.2s ease;
-                }
-
-                .dark .referral-card {
-                    background: #111827;
-                    border-color: #243047;
-                    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-                }
-
-                .referral-card:hover {
-                    border-color: rgba(37, 99, 235, 0.35);
-                    transform: translateY(-1px);
-                }
-
-                .dark .referral-card:hover {
-                    border-color: rgba(59, 130, 246, 0.45);
-                }
-
-                /* =====================================
-                   CANDIDATE
-                ===================================== */
-
-                .candidate-name {
-                    color: #0f172a;
-                }
-
-                .dark .candidate-name {
-                    color: #f8fafc;
-                }
-
-                .job-name {
-                    color: #64748b;
-                }
-
-                .dark .job-name {
-                    color: #94a3b8;
-                }
-
-                /* =====================================
-                   DETAILS
-                ===================================== */
-
-                .detail-label {
-                    color: #64748b;
-                }
-
-                .dark .detail-label {
-                    color: #94a3b8;
-                }
-
-                .detail-value {
-                    color: #334155;
-                }
-
-                .dark .detail-value {
-                    color: #cbd5e1;
-                }
-
-                .detail-icon {
-                    color: #64748b;
-                }
-
-                .dark .detail-icon {
-                    color: #94a3b8;
-                }
-
-                /* =====================================
-                   DIVIDER
-                ===================================== */
-
-                .referral-divider {
-                    border-color: #e2e8f0;
-                }
-
-                .dark .referral-divider {
-                    border-color: #243047;
-                }
-
-                /* =====================================
-                   RESUME
-                ===================================== */
-
-                .resume-button {
-                    color: #2563eb;
-                }
-
-                .resume-button:hover {
-                    color: #1d4ed8;
-                }
-
-                .dark .resume-button {
-                    color: #60a5fa;
-                }
-
-                .dark .resume-button:hover {
-                    color: #93c5fd;
-                }
-
-                /* =====================================
-                   STATUS MESSAGE
-                ===================================== */
-
-                .pending-message {
-                    color: #b45309;
-                    background: #fffbeb;
-                    border: 1px solid #fde68a;
-                }
-
-                .dark .pending-message {
-                    color: #fbbf24;
-                    background: rgba(245, 158, 11, 0.08);
-                    border-color: rgba(245, 158, 11, 0.2);
-                }
-
-                .approved-message {
-                    color: #047857;
-                    background: #ecfdf5;
-                    border: 1px solid #a7f3d0;
-                }
-
-                .dark .approved-message {
-                    color: #34d399;
-                    background: rgba(16, 185, 129, 0.08);
-                    border-color: rgba(16, 185, 129, 0.2);
-                }
-
-                .rejected-message {
-                    color: #b91c1c;
-                    background: #fef2f2;
-                    border: 1px solid #fecaca;
-                }
-
-                .dark .rejected-message {
-                    color: #f87171;
-                    background: rgba(239, 68, 68, 0.08);
-                    border-color: rgba(239, 68, 68, 0.2);
-                }
-
-                /* =====================================
-                   EMPTY STATE
-                ===================================== */
-
-                .empty-card {
-                    background: #ffffff;
-                    border: 1px solid #e2e8f0;
-                }
-
-                .dark .empty-card {
-                    background: #111827;
-                    border-color: #243047;
-                }
-
-                .empty-icon {
-                    background: #f1f5f9;
-                    color: #64748b;
-                }
-
-                .dark .empty-icon {
-                    background: #1e293b;
-                    color: #94a3b8;
-                }
-
-                .empty-title {
-                    color: #0f172a;
-                }
-
-                .dark .empty-title {
-                    color: #f8fafc;
-                }
-
-                .empty-text {
-                    color: #64748b;
-                }
-
-                .dark .empty-text {
-                    color: #94a3b8;
-                }
-
-                @media (max-width: 640px) {
-                    .referrals-page {
-                        padding: 16px !important;
-                    }
-                }
-            `}</style>
-
-            <div className="referrals-page p-6 md:p-8">
-
-                {/* =====================================
-                    HEADER
-                ===================================== */}
-
-                <div className="mb-7">
-                    <div className="breadcrumb mb-2 text-xs font-medium">
-                        Employee Portal / My Referrals
-                    </div>
-
-                    <div className="flex items-start justify-between gap-4">
-                        <div>
-                            <h1 className="page-title text-2xl font-bold tracking-tight md:text-3xl">
-                                My Referrals
-                            </h1>
-
-                            <p className="page-description mt-1 text-sm">
-                                Track candidates you have referred
-                                and monitor their application status.
-                            </p>
-                        </div>
-
-                        <button
-                            type="button"
-                            onClick={fetchMyReferrals}
-                            className="refresh-button flex h-10 w-10 shrink-0 items-center justify-center rounded-lg transition"
-                            title="Refresh referrals"
-                        >
-                            <RefreshCw size={17} />
-                        </button>
-                    </div>
-                </div>
-
-                {/* =====================================
-                    SUMMARY
-                ===================================== */}
-
-                <div className="mb-7 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-
-                    {/* Total */}
-                    <div className="summary-card rounded-xl p-5">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="summary-label text-xs font-medium">
-                                    Total Referrals
-                                </p>
-
-                                <p className="summary-value mt-2 text-2xl font-bold">
-                                    {referrals.length}
-                                </p>
-                            </div>
-
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-                                <Users size={19} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Pending */}
-                    <div className="summary-card rounded-xl p-5">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="summary-label text-xs font-medium">
-                                    Pending
-                                </p>
-
-                                <p className="summary-value mt-2 text-2xl font-bold">
-                                    {pendingCount}
-                                </p>
-                            </div>
-
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400">
-                                <Clock3 size={19} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Approved */}
-                    <div className="summary-card rounded-xl p-5">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="summary-label text-xs font-medium">
-                                    Approved
-                                </p>
-
-                                <p className="summary-value mt-2 text-2xl font-bold">
-                                    {approvedCount}
-                                </p>
-                            </div>
-
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400">
-                                <CheckCircle2 size={19} />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Rejected */}
-                    <div className="summary-card rounded-xl p-5">
-                        <div className="flex items-center justify-between">
-                            <div>
-                                <p className="summary-label text-xs font-medium">
-                                    Rejected
-                                </p>
-
-                                <p className="summary-value mt-2 text-2xl font-bold">
-                                    {rejectedCount}
-                                </p>
-                            </div>
-
-                            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-50 text-red-600 dark:bg-red-500/10 dark:text-red-400">
-                                <XCircle size={19} />
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-
-                {/* =====================================
-                    SEARCH & FILTER
-                ===================================== */}
-
-                <div className="filter-card mb-7 rounded-xl p-4">
-                    <div className="flex flex-col gap-3 md:flex-row">
-
-                        <div className="search-box flex h-11 flex-1 items-center gap-3 rounded-lg px-3">
-                            <Search
-                                size={18}
-                                className="shrink-0 text-slate-400 dark:text-slate-500"
-                            />
-
-                            <input
-                                type="text"
-                                value={search}
-                                onChange={(e) =>
-                                    setSearch(e.target.value)
-                                }
-                                placeholder="Search candidate or job..."
-                                className="search-input w-full text-sm"
-                            />
-
-                            {search && (
-                                <button
-                                    type="button"
-                                    onClick={() =>
-                                        setSearch("")
-                                    }
-                                    className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300"
-                                >
-                                    <XCircle size={17} />
-                                </button>
-                            )}
-                        </div>
-
-                        <div className="relative md:w-48">
-                            <select
-                                value={statusFilter}
-                                onChange={(e) =>
-                                    setStatusFilter(
-                                        e.target.value
-                                    )
-                                }
-                                className="filter-select h-11 w-full appearance-none rounded-lg px-3 pr-9 text-sm"
-                            >
-                                <option value="ALL">
-                                    All Status
-                                </option>
-
-                                <option value="APPLIED">
-                                    Pending
-                                </option>
-
-                                <option value="SHORTLISTED">
-                                    Approved
-                                </option>
-
-                                <option value="REJECTED">
-                                    Rejected
-                                </option>
-                            </select>
-
-                            <ChevronDown
-                                size={16}
-                                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"
-                            />
-                        </div>
-
-                    </div>
-                </div>
-
-                {/* =====================================
-                    SECTION HEADER
-                ===================================== */}
-
-                <div className="mb-4">
-                    <h2 className="section-title text-lg font-bold">
-                        Referral History
-                    </h2>
-
-                    <p className="section-description mt-1 text-xs">
-                        Showing {filteredReferrals.length} of{" "}
-                        {referrals.length} referral
-                        {referrals.length !== 1
-                            ? "s"
-                            : ""}
+        <div className="rf-root">
+            <style dangerouslySetInnerHTML={{ __html: referralsCSS }} />
+
+            {/* Header */}
+            <div className="rf-head">
+                <div>
+                    <div className="rf-crumb">Employee Portal / My Referrals</div>
+                    <h1 className="rf-title">My Referrals</h1>
+                    <p className="rf-subtitle">
+                        Track candidates you have referred and monitor their application status.
                     </p>
                 </div>
 
-                {/* =====================================
-                    REFERRALS
-                ===================================== */}
-
-                {filteredReferrals.length === 0 ? (
-                    <div className="empty-card rounded-2xl p-10 text-center">
-
-                        <div className="empty-icon mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl">
-                            <Users size={22} />
-                        </div>
-
-                        <h3 className="empty-title text-base font-bold">
-                            {referrals.length === 0
-                                ? "No referrals yet"
-                                : "No referrals found"}
-                        </h3>
-
-                        <p className="empty-text mt-1 text-sm">
-                            {referrals.length === 0
-                                ? "Candidates you refer will appear here."
-                                : "Try adjusting your search or status filter."}
-                        </p>
-
-                        {(search ||
-                            statusFilter !== "ALL") && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setSearch("");
-                                        setStatusFilter("ALL");
-                                    }}
-                                    className="mt-4 text-sm font-semibold text-blue-600 hover:underline dark:text-blue-400"
-                                >
-                                    Clear Filters
-                                </button>
-                            )}
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-
-                        {filteredReferrals.map(
-                            (referral) => {
-                                const statusStyle =
-                                    getStatusStyle(
-                                        referral.status
-                                    );
-
-                                return (
-                                    <div
-                                        key={referral.id}
-                                        className="referral-card rounded-2xl p-5 md:p-6"
-                                    >
-
-                                        {/* =====================================
-                                            TOP
-                                        ===================================== */}
-
-                                        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-
-                                            <div className="flex min-w-0 items-start gap-3">
-
-                                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400">
-                                                    <UserRound
-                                                        size={20}
-                                                    />
-                                                </div>
-
-                                                <div className="min-w-0">
-                                                    <h3 className="candidate-name truncate text-lg font-bold">
-                                                        {
-                                                            referral.candidateName
-                                                        }
-                                                    </h3>
-
-                                                    <p className="job-name mt-1 flex items-center gap-1.5 text-sm">
-                                                        <BriefcaseBusiness
-                                                            size={14}
-                                                        />
-
-                                                        <span>
-                                                            {referral.jobTitle ||
-                                                                "Job not specified"}
-                                                        </span>
-                                                    </p>
-                                                </div>
-
-                                            </div>
-
-                                            <span
-                                                className="inline-flex w-fit items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold"
-                                                style={{
-                                                    background:
-                                                        statusStyle.background,
-                                                    color:
-                                                        statusStyle.color,
-                                                    borderColor:
-                                                        statusStyle.border,
-                                                }}
-                                            >
-                                                {getStatusIcon(
-                                                    referral.status
-                                                )}
-
-                                                {getStatusText(
-                                                    referral.status
-                                                )}
-                                            </span>
-
-                                        </div>
-
-                                        {/* =====================================
-                                            DETAILS
-                                        ===================================== */}
-
-                                        <div className="mt-5 grid grid-cols-1 gap-4 border-t pt-5 sm:grid-cols-2 lg:grid-cols-3 referral-divider">
-
-                                            {/* EMAIL */}
-
-                                            <div className="flex items-start gap-3">
-                                                <Mail
-                                                    size={17}
-                                                    className="detail-icon mt-0.5 shrink-0"
-                                                />
-
-                                                <div className="min-w-0">
-                                                    <p className="detail-label text-[11px] font-medium">
-                                                        Email
-                                                    </p>
-
-                                                    <p className="detail-value mt-1 truncate text-sm font-semibold">
-                                                        {
-                                                            referral.candidateEmail
-                                                        }
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {/* PHONE */}
-
-                                            <div className="flex items-start gap-3">
-                                                <Phone
-                                                    size={17}
-                                                    className="detail-icon mt-0.5 shrink-0"
-                                                />
-
-                                                <div className="min-w-0">
-                                                    <p className="detail-label text-[11px] font-medium">
-                                                        Phone
-                                                    </p>
-
-                                                    <p className="detail-value mt-1 text-sm font-semibold">
-                                                        {
-                                                            referral.candidatePhone
-                                                        }
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                            {/* EXPERIENCE */}
-
-                                            <div className="flex items-start gap-3">
-                                                <BriefcaseBusiness
-                                                    size={17}
-                                                    className="detail-icon mt-0.5 shrink-0"
-                                                />
-
-                                                <div className="min-w-0">
-                                                    <p className="detail-label text-[11px] font-medium">
-                                                        Experience
-                                                    </p>
-
-                                                    <p className="detail-value mt-1 text-sm font-semibold">
-                                                        {
-                                                            referral.experienceYears ??
-                                                            0
-                                                        }{" "}
-                                                        {(referral.experienceYears ??
-                                                            0) ===
-                                                            1
-                                                            ? "year"
-                                                            : "years"}{" "}
-                                                        {
-                                                            referral.experienceMonths ??
-                                                            0
-                                                        }{" "}
-                                                        {(referral.experienceMonths ??
-                                                            0) ===
-                                                            1
-                                                            ? "month"
-                                                            : "months"}
-                                                    </p>
-                                                </div>
-                                            </div>
-
-                                        </div>
-
-                                        {/* =====================================
-                                            RESUME
-                                        ===================================== */}
-
-                                        {referral.resumeUrl && (
-                                            <div className="mt-5">
-                                                <button
-                                                    type="button"
-                                                    onClick={(e) =>
-                                                        handleViewResume(
-                                                            e,
-                                                            referral.resumeUrl
-                                                        )
-                                                    }
-                                                    className="resume-button inline-flex items-center gap-2 text-sm font-semibold transition"
-                                                >
-                                                    <FileText
-                                                        size={16}
-                                                    />
-
-                                                    View Resume
-
-                                                    <ChevronDown
-                                                        size={14}
-                                                        className="-rotate-90"
-                                                    />
-                                                </button>
-                                            </div>
-                                        )}
-
-                                        {/* =====================================
-                                            STATUS MESSAGE
-                                        ===================================== */}
-
-                                        {referral.status ===
-                                            "APPLIED" && (
-                                                <div className="pending-message mt-5 rounded-lg px-4 py-3 text-xs font-medium">
-                                                    <div className="flex items-center gap-2">
-                                                        <Clock3
-                                                            size={15}
-                                                        />
-
-                                                        <span>
-                                                            Your referral
-                                                            is waiting for
-                                                            HR review.
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                        {referral.status ===
-                                            "SHORTLISTED" && (
-                                                <div className="approved-message mt-5 rounded-lg px-4 py-3 text-xs font-semibold">
-                                                    <div className="flex items-center gap-2">
-                                                        <CheckCircle2
-                                                            size={15}
-                                                        />
-
-                                                        <span>
-                                                            HR has approved
-                                                            this candidate.
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                        {referral.status ===
-                                            "REJECTED" && (
-                                                <div className="rejected-message mt-5 rounded-lg px-4 py-3 text-xs font-semibold">
-                                                    <div className="flex items-center gap-2">
-                                                        <XCircle
-                                                            size={15}
-                                                        />
-
-                                                        <span>
-                                                            HR has rejected
-                                                            this candidate.
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            )}
-
-                                    </div>
-                                );
-                            }
-                        )}
-
-                    </div>
-                )}
-
+                <button
+                    type="button"
+                    className="rf-refresh"
+                    onClick={() => fetchMyReferrals(true)}
+                    disabled={refreshing}
+                    title="Refresh referrals"
+                    aria-label="Refresh referrals"
+                >
+                    <RefreshCw size={17} className={refreshing ? "animate-spin" : ""} />
+                </button>
             </div>
-        </>
+
+            {/* Summary */}
+            <div className="rf-summary">
+                {SUMMARY.map((s) => {
+                    const Icon = s.icon;
+
+                    return (
+                        <div key={s.label} className="rf-sum">
+                            <div style={{ minWidth: 0 }}>
+                                <div className="rf-sum-label">{s.label}</div>
+                                <div className="rf-sum-value">{s.value}</div>
+                            </div>
+
+                            <div className="rf-sum-icon" style={{ background: s.color + "1f", color: s.color }}>
+                                <Icon size={19} />
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Search + filter */}
+            <div className="rf-filters">
+                <div className="rf-search">
+                    <Search size={18} style={{ color: "var(--text-secondary)", flexShrink: 0 }} />
+
+                    <input
+                        type="text"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        placeholder="Search candidate, email, phone or job..."
+                    />
+
+                    {search && (
+                        <button type="button" className="rf-clear" onClick={() => setSearch("")} aria-label="Clear search">
+                            <XCircle size={17} />
+                        </button>
+                    )}
+                </div>
+
+                <div className="rf-chips">
+                    {CHIPS.map((c) => (
+                        <button
+                            key={c.key}
+                            type="button"
+                            className={"rf-chip" + (statusFilter === c.key ? " active" : "")}
+                            onClick={() => setStatusFilter(c.key)}
+                        >
+                            {c.label}
+                            <b>{c.count}</b>
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* List header */}
+            <div className="rf-list-head">
+                <h2 className="rf-list-title">Referral History</h2>
+                <div className="rf-list-sub">
+                    Showing {filteredReferrals.length} of {plural(referrals.length, "referral")}
+                </div>
+            </div>
+
+            {/* List */}
+            {filteredReferrals.length === 0 ? (
+                <div className="rf-empty">
+                    <div className="rf-empty-icon">
+                        <Users size={24} />
+                    </div>
+
+                    <h3>{referrals.length === 0 ? "No referrals yet" : "No referrals found"}</h3>
+
+                    <p>
+                        {referrals.length === 0
+                            ? "Candidates you refer will appear here."
+                            : "Try adjusting your search or status filter."}
+                    </p>
+
+                    {(search || statusFilter !== "ALL") && (
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setSearch("");
+                                setStatusFilter("ALL");
+                            }}
+                        >
+                            Clear filters
+                        </button>
+                    )}
+                </div>
+            ) : (
+                <div className="rf-list">
+                    {filteredReferrals.map((referral) => {
+                        const st = getStatus(referral.status);
+                        const StatusIcon = st.icon;
+                        const years = referral.experienceYears ?? 0;
+                        const months = referral.experienceMonths ?? 0;
+
+                        return (
+                            <div key={referral.id} className="rf-card">
+                                {/* Top */}
+                                <div className="rf-top">
+                                    <div className="rf-who">
+                                        <div className="rf-avatar">
+                                            <UserRound size={21} />
+                                        </div>
+
+                                        <div style={{ minWidth: 0 }}>
+                                            <h3 className="rf-name">{referral.candidateName}</h3>
+
+                                            <div className="rf-job">
+                                                <BriefcaseBusiness size={14} style={{ flexShrink: 0 }} />
+                                                <span>{referral.jobTitle || "Job not specified"}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <span className={"rf-pill " + st.cls}>
+                                        <StatusIcon size={14} />
+                                        {st.text}
+                                    </span>
+                                </div>
+
+                                {/* Details */}
+                                <div className="rf-details">
+                                    <div className="rf-detail">
+                                        <Mail size={17} />
+                                        <div style={{ minWidth: 0 }}>
+                                            <div className="rf-detail-label">Email</div>
+                                            <div className="rf-detail-value">{referral.candidateEmail || "—"}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="rf-detail">
+                                        <Phone size={17} />
+                                        <div style={{ minWidth: 0 }}>
+                                            <div className="rf-detail-label">Phone</div>
+                                            <div className="rf-detail-value soft">{referral.candidatePhone || "—"}</div>
+                                        </div>
+                                    </div>
+
+                                    <div className="rf-detail">
+                                        <BriefcaseBusiness size={17} />
+                                        <div style={{ minWidth: 0 }}>
+                                            <div className="rf-detail-label">Experience</div>
+                                            <div className="rf-detail-value soft">
+                                                {plural(years, "year")} {plural(months, "month")}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Resume */}
+                                {referral.resumeUrl && (
+                                    <button
+                                        type="button"
+                                        className="rf-resume"
+                                        onClick={() => handleViewResume(referral)}
+                                        disabled={openingId === referral.id}
+                                    >
+                                        {openingId === referral.id ? (
+                                            <Loader2 size={16} className="animate-spin" />
+                                        ) : (
+                                            <FileText size={16} />
+                                        )}
+                                        View Resume
+                                        <ExternalLink size={14} />
+                                    </button>
+                                )}
+
+                                {/* Status message */}
+                                {STATUS[referral.status] && (
+                                    <div className={"rf-msg " + st.cls}>
+                                        <StatusIcon size={16} />
+                                        <span>{st.msg}</span>
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+        </div>
     );
 }
