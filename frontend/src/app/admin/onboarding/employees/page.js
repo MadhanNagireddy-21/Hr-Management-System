@@ -12,6 +12,19 @@ import toast from 'react-hot-toast';
 import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { Edit, Trash2, Loader2, AlertTriangle } from 'lucide-react';
 
+/* ---------- responsive hook ---------- */
+function useIsMobile(breakpoint = 768) {
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+        const update = () => setIsMobile(mq.matches);
+        update();
+        mq.addEventListener('change', update);
+        return () => mq.removeEventListener('change', update);
+    }, [breakpoint]);
+    return isMobile;
+}
+
 function OnboardingBadge({ status }) {
     const map = {
         PENDING: { bg: '#f1f5f9', color: 'var(--text-secondary)', label: 'Not Started' },
@@ -20,7 +33,7 @@ function OnboardingBadge({ status }) {
     };
     const s = map[status] || map.PENDING;
     return (
-        <span style={{ background: s.bg, color: s.color, padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+        <span style={{ background: s.bg, color: s.color, padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' }}>
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: s.color }} />
             {s.label}
         </span>
@@ -40,7 +53,8 @@ function InputField({ label, name, type = 'text', required, placeholder, value, 
                 placeholder={placeholder}
                 required={required}
                 max={max}
-                style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                // 16px font on mobile stops iOS Safari from zooming on focus
+                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '16px', outline: 'none', boxSizing: 'border-box' }}
                 onFocus={e => e.target.style.borderColor = '#3b82f6'}
                 onBlur={e => e.target.style.borderColor = '#e2e8f0'}
             />
@@ -58,7 +72,11 @@ const EMPTY_FORM = {
 
 const DEPARTMENTS = ['All Departments', 'Engineering', 'Design', 'Product', 'Marketing', 'Sales', 'HR', 'Finance'];
 
+const selectStyle = { width: '100%', padding: '10px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '16px', outline: 'none', background: 'var(--card-bg)', boxSizing: 'border-box' };
+
 export default function OnboardingEmployeesPage() {
+    const isMobile = useIsMobile();
+
     const [employees, setEmployees] = useState([]);
     const [onboardingByEmpId, setOnboardingByEmpId] = useState({});
     const [loading, setLoading] = useState(true);
@@ -85,7 +103,7 @@ export default function OnboardingEmployeesPage() {
             list.forEach(o => { map[o.employeeId] = o.status; });
             setOnboardingByEmpId(map);
         } catch {
-            // non-fatal — just means the onboarding column shows "Not Started" for everyone
+            // non-fatal — onboarding column shows "Not Started" for everyone
         }
     }, []);
 
@@ -206,16 +224,32 @@ export default function OnboardingEmployeesPage() {
 
     const displayedEmployees = employees;
 
+    const actionButtons = (emp) => (
+        <div style={{ display: 'flex', gap: isMobile ? '6px' : '10px' }}>
+            <button onClick={() => openEditForm(emp)} title="Edit" aria-label="Edit employee"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)', padding: isMobile ? '8px' : '0' }}><Edit size={16} /></button>
+            <button onClick={() => setShowDeleteConfirm(emp)} title="Delete" aria-label="Delete employee"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', padding: isMobile ? '8px' : '0' }}><Trash2 size={16} /></button>
+        </div>
+    );
+
+    const avatar = (emp) => (
+        <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'linear-gradient(135deg, #1e3a5f, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '700', color: 'white', flexShrink: 0 }}>
+            {emp.firstName?.[0]}{emp.lastName?.[0]}
+        </div>
+    );
+
     return (
-        <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+        <div style={{ maxWidth: '100%', overflowX: 'hidden' }}>
+            {/* Header */}
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', justifyContent: 'space-between', alignItems: isMobile ? 'stretch' : 'center', gap: isMobile ? '14px' : '12px', marginBottom: isMobile ? '16px' : '24px' }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>
                         <span>Onboarding</span>
                         <span style={{ color: 'var(--text-muted)' }}>/</span>
                         <span style={{ color: '#3b82f6' }}>Employees</span>
                     </div>
-                    <h1 style={{ fontSize: '22px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                    <h1 style={{ fontSize: isMobile ? '19px' : '22px', fontWeight: '800', color: 'var(--text-primary)', marginBottom: '4px' }}>
                         Onboarding Employees
                     </h1>
                     <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
@@ -223,12 +257,13 @@ export default function OnboardingEmployeesPage() {
                     </p>
                 </div>
                 <button onClick={openAddForm}
-                    style={{ padding: '10px 20px', background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer' }}>
+                    style={{ padding: '11px 20px', background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '10px', fontSize: '13px', fontWeight: '700', cursor: 'pointer', width: isMobile ? '100%' : 'auto', whiteSpace: 'nowrap' }}>
                     + Add Employee
                 </button>
             </div>
 
-            <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
+            {/* Search + filter */}
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: '12px', marginBottom: '16px' }}>
                 <div style={{ position: 'relative', flex: 1 }}>
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2"
                         style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }}>
@@ -236,23 +271,26 @@ export default function OnboardingEmployeesPage() {
                     </svg>
                     <input
                         value={search}
-                        onChange={e => setSearch(e.target.value)}
-                        placeholder="Search by name, email, or employee code..."
-                        style={{ width: '100%', paddingLeft: '38px', paddingRight: '16px', height: '40px', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
+                        onChange={e => { setSearch(e.target.value); setPage(0); }}
+                        placeholder={isMobile ? 'Search employees...' : 'Search by name, email, or employee code...'}
+                        style={{ width: '100%', paddingLeft: '38px', paddingRight: '16px', height: '42px', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '16px', outline: 'none', boxSizing: 'border-box' }}
                     />
                 </div>
                 <select value={deptFilter} onChange={handleDeptFilterChange}
-                    style={{ padding: '0 14px', height: '40px', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '13px', outline: 'none', background: 'var(--card-bg)' }}>
+                    style={{ padding: '0 14px', height: '42px', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '16px', outline: 'none', background: 'var(--card-bg)', width: isMobile ? '100%' : 'auto', boxSizing: 'border-box' }}>
                     {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
             </div>
 
-            <div style={{ background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--card-border)', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 0.8fr', gap: '16px', padding: '10px 20px', background: 'var(--bg-primary)', borderBottom: '1px solid var(--card-border)' }}>
-                    {['Employee', 'Department', 'Joining Date', 'Onboarding', 'Actions'].map(h => (
-                        <div key={h} style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</div>
-                    ))}
-                </div>
+            {/* List */}
+            <div style={{ background: isMobile ? 'transparent' : 'var(--card-bg)', borderRadius: '12px', border: isMobile ? 'none' : '1px solid var(--card-border)', boxShadow: isMobile ? 'none' : '0 1px 4px rgba(0,0,0,0.04)' }}>
+                {!isMobile && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 0.8fr', gap: '16px', padding: '10px 20px', background: 'var(--bg-primary)', borderBottom: '1px solid var(--card-border)' }}>
+                        {['Employee', 'Department', 'Joining Date', 'Onboarding', 'Actions'].map(h => (
+                            <div key={h} style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</div>
+                        ))}
+                    </div>
+                )}
 
                 {loading ? (
                     <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading employees...</div>
@@ -260,68 +298,102 @@ export default function OnboardingEmployeesPage() {
                     <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>No employees found</div>
                 ) : (
                     <>
-                        {displayedEmployees.map((emp) => (
-                            <div key={emp.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 0.8fr', gap: '16px', padding: '13px 20px', borderBottom: '1px solid #f1f5f9', alignItems: 'center' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
-                                    <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: 'linear-gradient(135deg, #1e3a5f, #3b82f6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: '700', color: 'white', flexShrink: 0 }}>
-                                        {emp.firstName?.[0]}{emp.lastName?.[0]}
+                        {isMobile ? (
+                            /* ---------- Mobile: card per employee ---------- */
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {displayedEmployees.map(emp => (
+                                    <div key={emp.id} style={{ background: 'var(--card-bg)', border: '1px solid var(--card-border)', borderRadius: '12px', padding: '14px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
+                                            {avatar(emp)}
+                                            <div style={{ minWidth: 0, flex: 1 }}>
+                                                <div style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>{emp.firstName} {emp.lastName}</div>
+                                                <div style={{ fontSize: '12px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{emp.email}</div>
+                                            </div>
+                                            {actionButtons(emp)}
+                                        </div>
+                                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', paddingTop: '12px', borderTop: '1px solid #f1f5f9' }}>
+                                            <div>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>Department</div>
+                                                <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{emp.department || '—'}</div>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{emp.designation || '—'}</div>
+                                            </div>
+                                            <div>
+                                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>Joining date</div>
+                                                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{emp.dateOfJoining || '—'}</div>
+                                            </div>
+                                        </div>
+                                        <div style={{ marginTop: '12px' }}>
+                                            <OnboardingBadge status={onboardingByEmpId[emp.id]} />
+                                        </div>
                                     </div>
-                                    <div style={{ minWidth: 0 }}>
-                                        <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{emp.firstName} {emp.lastName}</div>
-                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{emp.email}</div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{emp.department || '—'}</div>
-                                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{emp.designation || '—'}</div>
-                                </div>
-                                <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{emp.dateOfJoining || '—'}</div>
-                                <div><OnboardingBadge status={onboardingByEmpId[emp.id]} /></div>
-                                <div style={{ display: 'flex', gap: '10px' }}>
-                                    <button onClick={() => openEditForm(emp)} title="Edit"
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-secondary)' }}><Edit size={16} /></button>
-                                    <button onClick={() => setShowDeleteConfirm(emp)} title="Delete"
-                                        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626' }}><Trash2 size={16} /></button>
-                                </div>
+                                ))}
                             </div>
-                        ))}
+                        ) : (
+                            /* ---------- Desktop: table rows ---------- */
+                            displayedEmployees.map((emp) => (
+                                <div key={emp.id} style={{ display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr 0.8fr', gap: '16px', padding: '13px 20px', borderBottom: '1px solid #f1f5f9', alignItems: 'center' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+                                        {avatar(emp)}
+                                        <div style={{ minWidth: 0 }}>
+                                            <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{emp.firstName} {emp.lastName}</div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis' }}>{emp.email}</div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{emp.department || '—'}</div>
+                                        <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{emp.designation || '—'}</div>
+                                    </div>
+                                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{emp.dateOfJoining || '—'}</div>
+                                    <div><OnboardingBadge status={onboardingByEmpId[emp.id]} /></div>
+                                    {actionButtons(emp)}
+                                </div>
+                            ))
+                        )}
 
                         {totalPages > 1 && (
-                            <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'center', gap: '8px', borderTop: '1px solid var(--card-border)' }}>
+                            <div style={{ padding: '14px 20px', display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap', gap: '8px', borderTop: isMobile ? 'none' : '1px solid var(--card-border)' }}>
                                 <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
-                                    style={{ padding: '6px 14px', border: '1px solid var(--card-border)', borderRadius: '6px', fontSize: '12px', fontWeight: '600', color: page === 0 ? '#cbd5e1' : '#374151', background: 'var(--card-bg)', cursor: page === 0 ? 'not-allowed' : 'pointer' }}>← Prev</button>
-                                <span style={{ padding: '6px 14px', fontSize: '12px', color: 'var(--text-secondary)' }}>Page {page + 1} of {totalPages}</span>
+                                    style={{ padding: '8px 14px', border: '1px solid var(--card-border)', borderRadius: '6px', fontSize: '12px', fontWeight: '600', color: page === 0 ? '#cbd5e1' : '#374151', background: 'var(--card-bg)', cursor: page === 0 ? 'not-allowed' : 'pointer' }}>← Prev</button>
+                                <span style={{ padding: '6px 10px', fontSize: '12px', color: 'var(--text-secondary)' }}>Page {page + 1} of {totalPages}</span>
                                 <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
-                                    style={{ padding: '6px 14px', border: '1px solid var(--card-border)', borderRadius: '6px', fontSize: '12px', fontWeight: '600', color: page >= totalPages - 1 ? '#cbd5e1' : '#374151', background: 'var(--card-bg)', cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer' }}>Next →</button>
+                                    style={{ padding: '8px 14px', border: '1px solid var(--card-border)', borderRadius: '6px', fontSize: '12px', fontWeight: '600', color: page >= totalPages - 1 ? '#cbd5e1' : '#374151', background: 'var(--card-bg)', cursor: page >= totalPages - 1 ? 'not-allowed' : 'pointer' }}>Next →</button>
                             </div>
                         )}
                     </>
                 )}
             </div>
 
+            {/* Add / Edit modal */}
             {showForm && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}>
-                    <div style={{ background: 'var(--card-bg)', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' }}>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: isMobile ? 'flex-end' : 'center', justifyContent: 'center', zIndex: 100, padding: isMobile ? '0' : '20px' }}>
+                    <div style={{
+                        background: 'var(--card-bg)',
+                        borderRadius: isMobile ? '16px 16px 0 0' : '16px',
+                        padding: isMobile ? '20px 16px calc(20px + env(safe-area-inset-bottom, 0px))' : '28px',
+                        width: '100%', maxWidth: '600px',
+                        maxHeight: isMobile ? '92vh' : '90vh',
+                        overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', boxSizing: 'border-box',
+                    }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                             <h2 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-primary)' }}>{editMode ? 'Edit Employee' : 'Add New Employee'}</h2>
-                            <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-muted)' }}>✕</button>
+                            <button onClick={() => setShowForm(false)} aria-label="Close" style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px 8px' }}>✕</button>
                         </div>
                         <form onSubmit={handleSubmit}>
-                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
                                 <InputField label="Employee ID" name="employeeId" required placeholder="EMP0004" value={form.employeeId} onChange={handleFieldChange} />
                                 <InputField label="First Name" name="firstName" required placeholder="John" value={form.firstName} onChange={handleFieldChange} />
                                 <InputField label="Last Name" name="lastName" required placeholder="Doe" value={form.lastName} onChange={handleFieldChange} />
                                 <InputField label="Email" name="email" type="email" required placeholder="john@hrms.com" value={form.email} onChange={handleFieldChange} />
                                 <div style={{ position: "relative" }}>
                                     <InputField label={editMode ? "Password (leave blank to keep)" : "Password"} name="password" type={showPassword ? "text" : "password"} required={!editMode} placeholder="Min 8 characters" value={form.password} onChange={handleFieldChange} />
-                                    <span onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: "12px", top: "38px", cursor: "pointer", color: "var(--text-secondary)", fontSize: "16px" }}>
+                                    <span onClick={() => setShowPassword(!showPassword)} style={{ position: "absolute", right: "12px", top: "34px", cursor: "pointer", color: "var(--text-secondary)", fontSize: "16px", padding: '4px' }}>
                                         {showPassword ? <FaEyeSlash /> : <FaEye />}
                                     </span>
                                 </div>
-                                <InputField label="Phone" name="phone" placeholder="9876543210" value={form.phone} onChange={handleFieldChange} />
+                                <InputField label="Phone" name="phone" type="tel" placeholder="9876543210" value={form.phone} onChange={handleFieldChange} />
                                 <div>
                                     <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '5px' }}>Department</label>
-                                    <select value={form.department} onChange={e => handleFieldChange('department', e.target.value)} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', outline: 'none', background: 'var(--card-bg)' }}>
+                                    <select value={form.department} onChange={e => handleFieldChange('department', e.target.value)} style={selectStyle}>
                                         <option value="">Select Department</option>
                                         {DEPARTMENTS.filter(d => d !== 'All Departments').map(d => <option key={d} value={d}>{d}</option>)}
                                     </select>
@@ -333,13 +405,13 @@ export default function OnboardingEmployeesPage() {
                             </div>
                             <div style={{ marginBottom: '20px' }}>
                                 <label style={{ fontSize: '12px', fontWeight: '600', color: '#374151', display: 'block', marginBottom: '5px' }}>Role <span style={{ color: '#ef4444' }}>*</span></label>
-                                <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: '8px', fontSize: '13px', outline: 'none', background: 'var(--card-bg)' }}>
+                                <select value={form.role} onChange={e => setForm({ ...form, role: e.target.value })} style={selectStyle}>
                                     <option value="EMPLOYEE">EMPLOYEE</option>
                                     <option value="HR">HR</option>
                                     <option value="ADMIN">ADMIN</option>
                                 </select>
                             </div>
-                            <div style={{ display: 'flex', gap: '10px' }}>
+                            <div style={{ display: 'flex', flexDirection: isMobile ? 'column-reverse' : 'row', gap: '10px' }}>
                                 <button type="button" onClick={() => setShowForm(false)} style={{ flex: 1, padding: '12px', background: 'var(--card-bg)', color: '#374151', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
                                 <button type="submit" disabled={submitting} style={{ flex: 1, padding: '12px', background: '#1e3a5f', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '700', cursor: submitting ? 'not-allowed' : 'pointer', opacity: submitting ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                                     {submitting ? <><Loader2 size={16} className="animate-spin" /> Saving...</> : editMode ? 'Update Employee' : 'Add Employee'}
@@ -350,9 +422,10 @@ export default function OnboardingEmployeesPage() {
                 </div>
             )}
 
+            {/* Delete confirm modal */}
             {showDeleteConfirm && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '20px' }}>
-                    <div style={{ background: 'var(--card-bg)', borderRadius: '16px', padding: '28px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', textAlign: 'center' }}>
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 100, padding: '16px' }}>
+                    <div style={{ background: 'var(--card-bg)', borderRadius: '16px', padding: isMobile ? '22px 18px' : '28px', width: '100%', maxWidth: '400px', boxShadow: '0 20px 60px rgba(0,0,0,0.2)', textAlign: 'center', boxSizing: 'border-box' }}>
                         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px', color: '#dc2626' }}>
                             <AlertTriangle size={48} strokeWidth={1.5} />
                         </div>
@@ -360,7 +433,7 @@ export default function OnboardingEmployeesPage() {
                         <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px' }}>
                             Are you sure you want to delete <strong>{showDeleteConfirm.firstName} {showDeleteConfirm.lastName}</strong>? This action cannot be undone.
                         </p>
-                        <div style={{ display: 'flex', gap: '10px' }}>
+                        <div style={{ display: 'flex', flexDirection: isMobile ? 'column-reverse' : 'row', gap: '10px' }}>
                             <button onClick={() => setShowDeleteConfirm(null)} style={{ flex: 1, padding: '12px', background: 'var(--card-bg)', color: '#374151', border: '1.5px solid #e2e8f0', borderRadius: '10px', fontSize: '14px', fontWeight: '600', cursor: 'pointer' }}>Cancel</button>
                             <button onClick={() => handleDelete(showDeleteConfirm.id)} disabled={deleting === showDeleteConfirm.id} style={{ flex: 1, padding: '12px', background: '#dc2626', color: 'white', border: 'none', borderRadius: '10px', fontSize: '14px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
                                 {deleting === showDeleteConfirm.id ? <><Loader2 size={16} className="animate-spin" /> Deleting...</> : 'Yes, Delete'}
