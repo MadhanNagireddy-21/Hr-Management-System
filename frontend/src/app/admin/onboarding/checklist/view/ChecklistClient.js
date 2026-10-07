@@ -24,44 +24,33 @@ const DOC_KEY_LABELS = {
     BANK_PASSBOOK: 'Bank Passbook',
 };
 
+/* ---------- responsive hook ---------- */
+function useIsMobile(breakpoint = 768) {
+    const [isMobile, setIsMobile] = useState(false);
+    useEffect(() => {
+        const mq = window.matchMedia(`(max-width: ${breakpoint}px)`);
+        const update = () => setIsMobile(mq.matches);
+        update();
+        mq.addEventListener('change', update);
+        return () => mq.removeEventListener('change', update);
+    }, [breakpoint]);
+    return isMobile;
+}
+
 function DocStatusBadge({ status }) {
     const map = {
-        UNDER_REVIEW: {
-            bg: '#fef9c3',
-            color: '#ca8a04',
-            label: 'Pending'
-        },
-        APPROVED: {
-            bg: '#dcfce7',
-            color: '#16a34a',
-            label: 'Approved'
-        },
-        REJECTED: {
-            bg: '#fee2e2',
-            color: '#dc2626',
-            label: 'Rejected'
-        },
-        REUPLOAD_REQUIRED: {
-            bg: '#fef3c7',
-            color: '#d97706',
-            label: 'Re-upload Required'
-        },
+        UNDER_REVIEW: { bg: '#fef9c3', color: '#ca8a04', label: 'Pending' },
+        APPROVED: { bg: '#dcfce7', color: '#16a34a', label: 'Approved' },
+        REJECTED: { bg: '#fee2e2', color: '#dc2626', label: 'Rejected' },
+        REUPLOAD_REQUIRED: { bg: '#fef3c7', color: '#d97706', label: 'Re-upload Required' },
     };
 
-    const s = map[status] || {
-        bg: '#f1f5f9',
-        color: 'var(--text-secondary)',
-        label: 'Not submitted'
-    };
+    const s = map[status] || { bg: '#f1f5f9', color: 'var(--text-secondary)', label: 'Not submitted' };
 
     return (
         <span style={{
-            background: s.bg,
-            color: s.color,
-            padding: '3px 10px',
-            borderRadius: '20px',
-            fontSize: '11px',
-            fontWeight: '700'
+            background: s.bg, color: s.color, padding: '3px 10px',
+            borderRadius: '20px', fontSize: '11px', fontWeight: '700', whiteSpace: 'nowrap',
         }}>
             {s.label}
         </span>
@@ -86,6 +75,7 @@ export default function OnboardingProfilePage() {
     const searchParams = useSearchParams();
     const onboardingId = searchParams?.get('id');
     const router = useRouter();
+    const isMobile = useIsMobile();
     const [onboarding, setOnboarding] = useState(null);
     const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -134,6 +124,26 @@ export default function OnboardingProfilePage() {
         }
     };
 
+    const handleApprove = async (doc) => {
+        try {
+            await api.put(`/api/onboarding/documents/${doc.id}/approve`);
+            toast.success('Document approved');
+            await fetchData();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to approve document');
+        }
+    };
+
+    const handleReupload = async (doc) => {
+        try {
+            await api.put(`/api/onboarding/documents/${doc.id}/reupload`);
+            toast.success('Re-upload requested');
+            await fetchData();
+        } catch (err) {
+            toast.error(err.response?.data?.message || 'Failed to request re-upload');
+        }
+    };
+
     const docsByKey = documents.reduce((acc, d) => { acc[d.documentKey] = d; return acc; }, {});
 
     if (loading) {
@@ -145,22 +155,32 @@ export default function OnboardingProfilePage() {
     }
 
     const initials = onboarding.employeeName?.split(' ').map(n => n[0]).join('').slice(0, 2);
+    const cardPad = isMobile ? '16px' : '20px';
+
+    const actionBtn = (bg, color) => ({
+        padding: isMobile ? '8px 12px' : '6px 10px',
+        border: 'none', borderRadius: '7px', background: bg, color,
+        fontSize: '11px', fontWeight: '700', cursor: 'pointer',
+    });
 
     return (
-        <div>
+        <div style={{ maxWidth: '100%', overflowX: 'hidden' }}>
             <button
                 onClick={() => router.push('/admin/onboarding/checklist')}
-                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600', cursor: 'pointer', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '6px', padding: isMobile ? '6px 0' : '0' }}>
                 ← Back to Dashboard
             </button>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '20px', alignItems: 'start' }}>
-                <div style={{ background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--card-border)', padding: '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', textAlign: 'center' }}>
+            {/* Single column on mobile, sidebar + content on desktop */}
+            <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'minmax(0, 1fr)' : '280px minmax(0, 1fr)', gap: '20px', alignItems: 'start' }}>
+
+                {/* Profile card */}
+                <div style={{ background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--card-border)', padding: isMobile ? '18px' : '24px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)', textAlign: 'center' }}>
                     <div style={{
-                        width: '80px', height: '80px', borderRadius: '16px', margin: '0 auto 14px',
+                        width: isMobile ? '64px' : '80px', height: isMobile ? '64px' : '80px', borderRadius: '16px', margin: '0 auto 14px',
                         background: 'linear-gradient(135deg, #4f46e5, #7c3aed)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '26px', fontWeight: '800', color: 'white',
+                        fontSize: isMobile ? '22px' : '26px', fontWeight: '800', color: 'white',
                     }}>
                         {initials}
                     </div>
@@ -180,11 +200,16 @@ export default function OnboardingProfilePage() {
                             <span style={{ fontSize: '12px', fontWeight: '700', color: '#4f46e5' }}>{onboarding.completionPercent}%</span>
                         </div>
                         <div style={{ height: '6px', background: 'var(--card-border)', borderRadius: '3px', overflow: 'hidden' }}>
-                            <div style={{ height: '100%', background: '#4f46e5', width: `${onboarding.completionPercent}%`, borderRadius: '3px' }} />
+                            <div style={{ height: '100%', background: '#4f46e5', width: `${onboarding.completionPercent || 0}%`, borderRadius: '3px' }} />
                         </div>
                     </div>
 
-                    <div style={{ textAlign: 'left', borderTop: '1px solid var(--card-border)', paddingTop: '16px' }}>
+                    {/* Two columns of details on mobile to keep the card short */}
+                    <div style={{
+                        textAlign: 'left', borderTop: '1px solid var(--card-border)', paddingTop: '16px',
+                        display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, minmax(0, 1fr))' : 'minmax(0, 1fr)',
+                        columnGap: '14px',
+                    }}>
                         {[
                             { label: 'Email', value: onboarding.employeeEmail },
                             { label: 'Phone', value: onboarding.employeePhone },
@@ -195,13 +220,7 @@ export default function OnboardingProfilePage() {
                         ].map(f => (
                             <div key={f.label} style={{ marginBottom: '12px', minWidth: 0 }}>
                                 <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>{f.label}</div>
-                                <div style={{
-                                    fontSize: '13px',
-                                    color: 'var(--text-primary)',
-                                    fontWeight: '500',
-                                    wordBreak: 'break-word',
-                                    overflowWrap: 'anywhere',
-                                }}>
+                                <div style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '500', wordBreak: 'break-word', overflowWrap: 'anywhere' }}>
                                     {f.value || '—'}
                                 </div>
                             </div>
@@ -209,22 +228,23 @@ export default function OnboardingProfilePage() {
                     </div>
                 </div>
 
-                <div>
-                    <div style={{ background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--card-border)', padding: '20px', marginBottom: '20px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '14px' }}>
+                <div style={{ minWidth: 0 }}>
+                    {/* Checklist */}
+                    <div style={{ background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--card-border)', padding: cardPad, marginBottom: '20px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                        <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'space-between', gap: '4px', marginBottom: '14px' }}>
                             <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>
                                 ✅ Onboarding Checklist
                             </div>
                             <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>
-                                Click a row to check/uncheck, then Save
+                                {isMobile ? 'Tap a row to check/uncheck, then Save' : 'Click a row to check/uncheck, then Save'}
                             </div>
                         </div>
                         {CHECKLIST_ITEMS.map((item, i) => (
                             <label key={item.key}
                                 htmlFor={`checklist-${item.key}`}
                                 style={{
-                                    display: 'flex', alignItems: 'center', gap: '12px',
-                                    padding: '12px 8px', borderTop: i === 0 ? 'none' : '1px solid var(--card-border)',
+                                    display: 'flex', alignItems: 'center', gap: isMobile ? '10px' : '12px',
+                                    padding: isMobile ? '12px 4px' : '12px 8px', borderTop: i === 0 ? 'none' : '1px solid var(--card-border)',
                                     cursor: 'pointer', borderRadius: '8px', backgroundColor: 'transparent'
                                 }}
                                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(128,128,128,0.08)'}
@@ -235,27 +255,27 @@ export default function OnboardingProfilePage() {
                                     type="checkbox"
                                     checked={!!checklist[item.key]}
                                     onChange={() => toggleItem(item.key)}
-                                    style={{
-                                        width: '18px', height: '18px', flexShrink: 0,
-                                        accentColor: '#16a34a', cursor: 'pointer',
-                                    }}
+                                    style={{ width: '18px', height: '18px', flexShrink: 0, accentColor: '#16a34a', cursor: 'pointer' }}
                                 />
-                                <div style={{
-                                    width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0,
-                                    background: checklist[item.key] ? '#16a34a' : 'var(--card-border)',
-                                    color: checklist[item.key] ? 'white' : 'var(--text-muted)',
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: '11px', fontWeight: '700',
-                                }}>
-                                    {checklist[item.key] ? '✓' : i + 1}
-                                </div>
-                                <div style={{ flex: 1, fontSize: '13px', fontWeight: '600', color: checklist[item.key] ? '#16a34a' : 'var(--text-primary)' }}>
+                                {/* Number circle is hidden on mobile to save width */}
+                                {!isMobile && (
+                                    <div style={{
+                                        width: '24px', height: '24px', borderRadius: '50%', flexShrink: 0,
+                                        background: checklist[item.key] ? '#16a34a' : 'var(--card-border)',
+                                        color: checklist[item.key] ? 'white' : 'var(--text-muted)',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                        fontSize: '11px', fontWeight: '700',
+                                    }}>
+                                        {checklist[item.key] ? '✓' : i + 1}
+                                    </div>
+                                )}
+                                <div style={{ flex: 1, minWidth: 0, fontSize: '13px', fontWeight: '600', color: checklist[item.key] ? '#16a34a' : 'var(--text-primary)' }}>
                                     {item.label}
                                 </div>
                                 <span style={{
                                     background: checklist[item.key] ? 'rgba(22, 163, 74, 0.15)' : 'var(--card-border)',
                                     color: checklist[item.key] ? '#16a34a' : 'var(--text-muted)',
-                                    padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700',
+                                    padding: '3px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', flexShrink: 0,
                                 }}>
                                     {checklist[item.key] ? 'Done' : 'Pending'}
                                 </span>
@@ -269,9 +289,10 @@ export default function OnboardingProfilePage() {
                             <textarea
                                 value={remarks}
                                 onChange={e => setRemarks(e.target.value)}
-                                rows={2}
+                                rows={3}
                                 placeholder="Add any remarks about the onboarding..."
-                                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--card-border)', borderRadius: '10px', fontSize: '13px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit', background: 'transparent', color: 'var(--text-primary)' }}
+                                // 16px font stops iOS Safari zooming on focus
+                                style={{ width: '100%', padding: '10px 12px', border: '1.5px solid var(--card-border)', borderRadius: '10px', fontSize: '16px', outline: 'none', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'inherit', background: 'transparent', color: 'var(--text-primary)' }}
                             />
                         </div>
 
@@ -288,7 +309,8 @@ export default function OnboardingProfilePage() {
                         </button>
                     </div>
 
-                    <div style={{ background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--card-border)', padding: '20px', boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
+                    {/* Documents */}
+                    <div style={{ background: 'var(--card-bg)', borderRadius: '12px', border: '1px solid var(--card-border)', padding: cardPad, boxShadow: '0 1px 4px rgba(0,0,0,0.04)' }}>
                         <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '14px' }}>
                             📄 Documents
                         </div>
@@ -296,13 +318,16 @@ export default function OnboardingProfilePage() {
                             const doc = docsByKey[key];
                             return (
                                 <div key={key} style={{
-                                    display: 'flex', alignItems: 'center', gap: '12px',
-                                    padding: '12px 0', borderTop: i === 0 ? 'none' : '1px solid #f1f5f9',
+                                    display: 'flex',
+                                    // On mobile the status + buttons wrap onto their own line under the title
+                                    flexWrap: isMobile ? 'wrap' : 'nowrap',
+                                    alignItems: 'center', gap: '12px',
+                                    padding: '12px 0', borderTop: i === 0 ? 'none' : '1px solid var(--card-border)',
                                 }}>
                                     <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#eef2ff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '15px', flexShrink: 0 }}>
                                         📄
                                     </div>
-                                    <div style={{ flex: 1 }}>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
                                         <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>{DOC_KEY_LABELS[key]}</div>
                                         {doc?.fileUrl && (
                                             <a href={doc.fileUrl?.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'}${doc.fileUrl}` : doc.fileUrl} target="_blank" rel="noreferrer" style={{ fontSize: '11px', color: '#3b82f6' }}>
@@ -310,81 +335,27 @@ export default function OnboardingProfilePage() {
                                             </a>
                                         )}
                                         {doc?.status === 'REJECTED' && doc?.rejectionRemarks && (
-                                            <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '2px' }}>
+                                            <div style={{ fontSize: '11px', color: '#dc2626', marginTop: '2px', overflowWrap: 'anywhere' }}>
                                                 Remarks: {doc.rejectionRemarks}
                                             </div>
                                         )}
                                     </div>
                                     <div style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        flexShrink: 0
+                                        display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0,
+                                        flexBasis: isMobile ? '100%' : 'auto',
+                                        paddingLeft: isMobile ? '44px' : '0',
+                                        flexWrap: 'wrap',
                                     }}>
                                         <DocStatusBadge status={doc?.status} />
 
-                                        {/* Employee uploaded → Pending + Approve */}
                                         {doc?.status === 'UNDER_REVIEW' && (
-                                            <button
-                                                onClick={async () => {
-                                                    try {
-                                                        await api.put(
-                                                            `/api/onboarding/documents/${doc.id}/approve`
-                                                        );
-
-                                                        toast.success('Document approved');
-                                                        await fetchData();
-                                                    } catch (err) {
-                                                        toast.error(
-                                                            err.response?.data?.message ||
-                                                            'Failed to approve document'
-                                                        );
-                                                    }
-                                                }}
-                                                style={{
-                                                    padding: '6px 10px',
-                                                    border: 'none',
-                                                    borderRadius: '7px',
-                                                    background: '#dcfce7',
-                                                    color: '#16a34a',
-                                                    fontSize: '11px',
-                                                    fontWeight: '700',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
+                                            <button onClick={() => handleApprove(doc)} style={actionBtn('#dcfce7', '#16a34a')}>
                                                 Approve
                                             </button>
                                         )}
 
-                                        {/* Approved → Re-upload */}
                                         {doc?.status === 'APPROVED' && (
-                                            <button
-                                                onClick={async () => {
-                                                    try {
-                                                        await api.put(
-                                                            `/api/onboarding/documents/${doc.id}/reupload`
-                                                        );
-
-                                                        toast.success('Re-upload requested');
-                                                        await fetchData();
-                                                    } catch (err) {
-                                                        toast.error(
-                                                            err.response?.data?.message ||
-                                                            'Failed to request re-upload'
-                                                        );
-                                                    }
-                                                }}
-                                                style={{
-                                                    padding: '6px 10px',
-                                                    border: 'none',
-                                                    borderRadius: '7px',
-                                                    background: '#fee2e2',
-                                                    color: '#dc2626',
-                                                    fontSize: '11px',
-                                                    fontWeight: '700',
-                                                    cursor: 'pointer'
-                                                }}
-                                            >
+                                            <button onClick={() => handleReupload(doc)} style={actionBtn('#fee2e2', '#dc2626')}>
                                                 Re-upload
                                             </button>
                                         )}
