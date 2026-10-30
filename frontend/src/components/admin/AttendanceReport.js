@@ -1,3249 +1,471 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-
 import {
-    getAttendanceSummaryByDate,
-    exportAttendanceRange,
-} from '@/lib/adminApi';
-
+    Download, Loader2, Search, CalendarDays, ChevronLeft, ChevronRight, ChevronDown,
+    Eye, Coffee, X, SearchX, RefreshCw, CheckCircle2, Clock3, XCircle,
+} from 'lucide-react';
+import { getAttendanceSummaryByDate, exportAttendanceRange } from '@/lib/adminApi';
 import { downloadBlob } from '@/lib/downloadFile';
 import EmployeeAttendanceModal from './EmployeeAttendanceModal';
-
 import toast from 'react-hot-toast';
 
-import {
-    Download,
-    Loader2,
-    Search,
-    CalendarDays,
-    ChevronLeft,
-    ChevronRight,
-    Eye,
-    Clock3,
-    Users,
-    CheckCircle2,
-    XCircle,
-    Coffee,
-    RefreshCw,
-    SlidersHorizontal,
-    Building2,
-} from 'lucide-react';
+/* ---------- constants ---------- */
 
-/* =========================================================
-   STATUS COLORS
-========================================================= */
+const PAGE_SIZE = 50;
 
-const STATUS_COLORS = {
-    PRESENT: {
-        bg: '#ecfdf5',
-        color: '#15803d',
-        border: '#bbf7d0',
-    },
+const STATUSES = [
+    { key: 'PRESENT', label: 'Present', cls: 'present', Icon: CheckCircle2 },
+    { key: 'HALF_DAY', label: 'Half day', cls: 'half', Icon: Clock3 },
+    { key: 'ON_LEAVE', label: 'On leave', cls: 'leave', Icon: CalendarDays },
+    { key: 'ABSENT', label: 'Absent', cls: 'absent', Icon: XCircle },
+];
 
-    HALF_DAY: {
-        bg: '#fff7ed',
-        color: '#c2410c',
-        border: '#fed7aa',
-    },
+/* ---------- helpers ---------- */
 
-    ON_LEAVE: {
-        bg: '#eff6ff',
-        color: '#2563eb',
-        border: '#bfdbfe',
-    },
+const statusMeta = (key) =>
+    STATUSES.find((s) => s.key === key) || { key, label: key || 'Unknown', cls: 'unknown' };
 
-    ABSENT: {
-        bg: '#fef2f2',
-        color: '#dc2626',
-        border: '#fecaca',
-    },
-};
+const todayIST = () =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 
-/* =========================================================
-   STATUS BADGE
-========================================================= */
+const time5 = (v) => (v ? String(v).slice(0, 5) : null);
 
-function StatusBadge({ status }) {
-    const style =
-        STATUS_COLORS[status] || {
-            bg: '#f1f5f9',
-            color: '#64748b',
-            border: '#e2e8f0',
-        };
-
-    return (
-        <span
-            className="status-badge"
-            style={{
-                backgroundColor: style.bg,
-                color: style.color,
-                borderColor: style.border,
-            }}
-        >
-            <span className="status-dot" />
-
-            {status
-                ? status.replace(/_/g, ' ')
-                : '--'}
-        </span>
-    );
+function longDate(iso) {
+    const d = new Date(`${iso}T00:00:00`);
+    if (Number.isNaN(d.getTime())) return iso;
+    return new Intl.DateTimeFormat('en-IN', {
+        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
+    }).format(d);
 }
 
-/* =========================================================
-   FORMAT DURATION
-========================================================= */
-
-function formatDuration(mins) {
-    if (!mins && mins !== 0) {
-        return '--';
-    }
-
-    const hours = Math.floor(mins / 60);
-    const minutes = mins % 60;
-
-    if (hours > 0) {
-        return `${hours}h ${minutes}m`;
-    }
-
-    return `${minutes}m`;
+function initials(name) {
+    const p = String(name || '').trim().split(/\s+/).filter(Boolean);
+    if (!p.length) return '?';
+    return (p.length === 1 ? p[0].slice(0, 2) : p[0][0] + p[p.length - 1][0]).toUpperCase();
 }
 
-/* =========================================================
-   FORMAT BREAK TIMES
-========================================================= */
+function hueFor(seed) {
+    let h = 0;
+    for (const c of String(seed || 'x')) h = (h * 31 + c.charCodeAt(0)) % 360;
+    return h;
+}
 
-function formatBreakTimes(breaks) {
-    if (!breaks || breaks.length === 0) {
-        return '--';
-    }
-
+function formatBreaks(breaks) {
     return breaks
-        .map((breakItem) => {
-            const start = breakItem?.breakStart
-                ? String(
-                    breakItem.breakStart
-                ).slice(0, 5)
-                : '--';
-
-            const end = breakItem?.breakEnd
-                ? String(
-                    breakItem.breakEnd
-                ).slice(0, 5)
-                : '...';
-
-            return `${start}-${end}`;
-        })
+        .map((b) => `${time5(b?.breakStart) || '—'}–${time5(b?.breakEnd) || '…'}`)
         .join(', ');
 }
 
-/* =========================================================
-   TODAY IST
-========================================================= */
+/* ---------- page ---------- */
 
-function todayIST() {
-    const now = new Date();
-
-    const ist = new Date(
-        now.toLocaleString('en-US', {
-            timeZone: 'Asia/Kolkata',
-        })
-    );
-
-    return ist.toISOString().split('T')[0];
-}
-
-/* =========================================================
-   DISPLAY DATE
-========================================================= */
-
-function formatDisplayDate(value) {
-    if (!value) {
-        return '--';
-    }
-
-    const date = new Date(
-        `${value}T00:00:00`
-    );
-
-    if (Number.isNaN(date.getTime())) {
-        return value;
-    }
-
-    return date.toLocaleDateString('en-IN', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-    });
-}
-
-/* =========================================================
-   EMPLOYEE INITIALS
-========================================================= */
-
-function getEmployeeInitials(name) {
-    const value = String(
-        name || 'Employee'
-    ).trim();
-
-    if (!value) {
-        return 'E';
-    }
-
-    return value
-        .split(/\s+/)
-        .map((part) => part.charAt(0))
-        .slice(0, 2)
-        .join('')
-        .toUpperCase();
-}
-
-/* =========================================================
-   MAIN COMPONENT
-========================================================= */
-
-export default function AttendanceReport() {
-    const maxDate = useMemo(
-        () => todayIST(),
-        []
-    );
-
-    const [fromDate, setFromDate] =
-        useState(todayIST());
-
-    const [toDate, setToDate] =
-        useState(todayIST());
-
-    const [search, setSearch] =
-        useState('');
-
-    const [statusFilter, setStatusFilter] =
-        useState('ALL');
-
-    const [rows, setRows] =
-        useState([]);
-
-    const [loading, setLoading] =
-        useState(true);
-
-    const [page, setPage] =
-        useState(0);
-
-    const [totalPages, setTotalPages] =
-        useState(1);
-
-    const [
-        selectedEmployeeId,
-        setSelectedEmployeeId,
-    ] = useState(null);
-
-    const [exporting, setExporting] =
-        useState(false);
-
-    /* =====================================================
-       LOAD ATTENDANCE
-    ===================================================== */
+export default function AttendanceReportPage() {
+    const maxDate = useMemo(() => todayIST(), []);
+    const [fromDate, setFromDate] = useState(maxDate);
+    const [toDate, setToDate] = useState(maxDate);
+    const [search, setSearch] = useState('');
+    const [statusFilter, setStatusFilter] = useState('ALL');
+    const [rows, setRows] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
+    const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
+    const [exporting, setExporting] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0);
 
     useEffect(() => {
         let active = true;
-
-        const loadAttendance = async () => {
+        (async () => {
             setLoading(true);
-
             try {
-                const response =
-                    await getAttendanceSummaryByDate(
-                        toDate,
-                        page,
-                        50
-                    );
-
-                if (!active) {
-                    return;
-                }
-
-                const pageData =
-                    response?.data?.data;
-
-                setRows(
-                    pageData?.content || []
-                );
-
-                setTotalPages(
-                    Math.max(
-                        1,
-                        pageData?.totalPages ?? 1
-                    )
-                );
+                const res = await getAttendanceSummaryByDate(toDate, page, PAGE_SIZE);
+                if (!active) return;
+                const content = res?.data?.data?.content || res?.data?.content || [];
+                const pages = res?.data?.data?.totalPages ?? res?.data?.totalPages ?? 1;
+                setRows(Array.isArray(content) ? content : []);
+                setTotalPages(Math.max(Number(pages) || 1, 1));
             } catch (error) {
-                if (!active) {
-                    return;
-                }
-
-                console.error(
-                    'Attendance API error:',
-                    error
-                );
-
-                toast.error(
-                    error?.response?.data
-                        ?.message ||
-                    'Failed to load attendance'
-                );
-
-                setRows([]);
-                setTotalPages(1);
-            } finally {
+                console.error('Failed to load attendance:', error);
                 if (active) {
-                    setLoading(false);
+                    setRows([]);
+                    setTotalPages(1);
+                    toast.error(error?.response?.data?.message || 'Could not load attendance');
                 }
+            } finally {
+                if (active) setLoading(false);
             }
-        };
-
-        loadAttendance();
-
-        return () => {
-            active = false;
-        };
-    }, [toDate, page]);
-
-    /* =====================================================
-       FILTER ROWS
-    ===================================================== */
+        })();
+        return () => { active = false; };
+    }, [toDate, page, refreshKey]);
 
     const filteredRows = useMemo(() => {
-        const normalizedSearch =
-            search.trim().toLowerCase();
-
+        const q = search.trim().toLowerCase();
         return rows.filter((row) => {
-            const employeeName =
-                String(
-                    row?.employeeName || ''
-                ).toLowerCase();
-
-            const employeeCode =
-                String(
-                    row?.employeeCode || ''
-                ).toLowerCase();
-
-            const employeeId =
-                String(
-                    row?.employeeId || ''
-                ).toLowerCase();
-
-            const matchesSearch =
-                !normalizedSearch ||
-                employeeName.includes(
-                    normalizedSearch
-                ) ||
-                employeeCode.includes(
-                    normalizedSearch
-                ) ||
-                employeeId.includes(
-                    normalizedSearch
-                );
-
-            const matchesStatus =
-                statusFilter === 'ALL' ||
-                row?.status === statusFilter;
-
-            return (
-                matchesSearch &&
-                matchesStatus
-            );
+            const hit = !q || [row?.employeeName, row?.employeeCode, row?.employeeId]
+                .some((v) => String(v || '').toLowerCase().includes(q));
+            return hit && (statusFilter === 'ALL' || row?.status === statusFilter);
         });
-    }, [
-        rows,
-        search,
-        statusFilter,
-    ]);
+    }, [rows, search, statusFilter]);
 
-    /* =====================================================
-       SUMMARY
-    ===================================================== */
-
-    const summary = useMemo(() => {
-        const total = rows.length;
-
-        const present = rows.filter(
-            (row) =>
-                row?.status === 'PRESENT'
-        ).length;
-
-        const absent = rows.filter(
-            (row) =>
-                row?.status === 'ABSENT'
-        ).length;
-
-        const leave = rows.filter(
-            (row) =>
-                row?.status === 'ON_LEAVE'
-        ).length;
-
-        const halfDay = rows.filter(
-            (row) =>
-                row?.status === 'HALF_DAY'
-        ).length;
-
-        const onBreak = rows.filter(
-            (row) => row?.onBreak
-        ).length;
-
-        return {
-            total,
-            present,
-            absent,
-            leave,
-            halfDay,
-            onBreak,
-        };
+    const counts = useMemo(() => {
+        const c = { total: rows.length, PRESENT: 0, HALF_DAY: 0, ON_LEAVE: 0, ABSENT: 0, onBreak: 0 };
+        rows.forEach((r) => {
+            if (c[r?.status] !== undefined) c[r.status] += 1;
+            if (r?.onBreak) c.onBreak += 1;
+        });
+        return c;
     }, [rows]);
 
-    /* =====================================================
-       FROM DATE CHANGE
-    ===================================================== */
+    const hasFilters = search.trim() !== '' || statusFilter !== 'ALL';
 
-    const handleFromDateChange = (
-        event
-    ) => {
-        const value =
-            event.target.value;
-
-        if (!value) {
-            return;
-        }
-
-        if (value > maxDate) {
-            toast.error(
-                'Future dates are not allowed'
-            );
-            return;
-        }
-
-        if (value > toDate) {
-            toast.error(
-                'From date cannot be after To date'
-            );
-            return;
-        }
-
-        setFromDate(value);
+    const changeFrom = (v) => {
+        if (!v) return;
+        if (v > maxDate) return toast.error('Future dates are not allowed');
+        setFromDate(v);
+        if (toDate < v) setToDate(v);
         setPage(0);
     };
 
-    /* =====================================================
-       TO DATE CHANGE
-    ===================================================== */
-
-    const handleToDateChange = (
-        event
-    ) => {
-        const value =
-            event.target.value;
-
-        if (!value) {
-            return;
-        }
-
-        if (value > maxDate) {
-            toast.error(
-                'Future dates are not allowed'
-            );
-            return;
-        }
-
-        if (value < fromDate) {
-            toast.error(
-                'To date cannot be before From date'
-            );
-            return;
-        }
-
-        setToDate(value);
+    const changeTo = (v) => {
+        if (!v) return;
+        if (v > maxDate) return toast.error('Future dates are not allowed');
+        if (v < fromDate) return toast.error('To date cannot be before From date');
+        setToDate(v);
         setPage(0);
     };
 
-    /* =====================================================
-       EXPORT
-    ===================================================== */
+    const toggleStatus = (key) => {
+        setStatusFilter((cur) => (cur === key ? 'ALL' : key));
+        setPage(0);
+    };
 
-    const handleExport = async () => {
-        if (exporting) {
-            return;
-        }
+    const clearFilters = () => { setSearch(''); setStatusFilter('ALL'); setPage(0); };
 
+    async function handleExport() {
+        if (exporting) return;
         setExporting(true);
-
         try {
-            const response =
-                await exportAttendanceRange(
-                    fromDate,
-                    toDate,
-                    statusFilter,
-                    search
-                );
-
-            downloadBlob(
-                response,
-                `attendance_${fromDate}_to_${toDate}.xlsx`
-            );
-
-            toast.success(
-                'Attendance exported successfully'
-            );
+            const res = await exportAttendanceRange(fromDate, toDate, statusFilter, search);
+            downloadBlob(res, `attendance_${fromDate}_to_${toDate}.xlsx`);
+            toast.success('Attendance exported');
         } catch (error) {
-            console.error(
-                'Attendance export error:',
-                error
-            );
-
-            toast.error(
-                error?.response?.data
-                    ?.message ||
-                'Export failed'
-            );
+            console.error('Attendance export failed:', error);
+            toast.error(error?.response?.data?.message || 'Export failed');
         } finally {
             setExporting(false);
         }
-    };
-
-    /* =====================================================
-       RESET FILTERS
-    ===================================================== */
-
-    const clearFilters = () => {
-        setSearch('');
-        setStatusFilter('ALL');
-        setPage(0);
-    };
-
-    const hasFilters =
-        search.trim().length > 0 ||
-        statusFilter !== 'ALL';
-
-    /* =====================================================
-       UI
-    ===================================================== */
+    }
 
     return (
-        <div className="attendance-page">
-            <style jsx>{`
-
-                /* =================================================
-                   IMPORTANT:
-                   LIGHT THEME IS THE DEFAULT.
-                   DO NOT USE GLOBAL THEME VARIABLES HERE.
-                ================================================= */
-
-                .attendance-page {
-                    --attendance-page-bg: #f6f8fc;
-
-                    --attendance-surface: #ffffff;
-
-                    --attendance-surface-soft: #f8fafc;
-
-                    --attendance-surface-hover: #f5f8fc;
-
-                    --attendance-border: #e2e8f0;
-
-                    --attendance-border-soft: #edf1f5;
-
-                    --attendance-text: #172033;
-
-                    --attendance-text-secondary: #475569;
-
-                    --attendance-text-muted: #64748b;
-
-                    --attendance-text-faint: #94a3b8;
-
-                    --attendance-primary: #2563eb;
-
-                    --attendance-primary-soft: #eff6ff;
-
-                    --attendance-primary-border: #bfdbfe;
-
-                    width: 100%;
-
-                    min-height: 100%;
-
-                    color: var(--attendance-text);
-
-                    background:
-                        var(--attendance-page-bg);
-
-                    font-family:
-                        Inter,
-                        ui-sans-serif,
-                        system-ui,
-                        -apple-system,
-                        BlinkMacSystemFont,
-                        "Segoe UI",
-                        sans-serif;
-
-                    font-size: 15px;
-
-                    letter-spacing: -0.01em;
-                }
-
-                /* =================================================
-                   DARK MODE
-                   ONLY WHEN PARENT HAS .dark
-                ================================================= */
-
-                :global(.dark) .attendance-page {
-                    --attendance-page-bg: #070b14;
-
-                    --attendance-surface: #0d1422;
-
-                    --attendance-surface-soft: #111a2b;
-
-                    --attendance-surface-hover: #131e30;
-
-                    --attendance-border: #1e2a3d;
-
-                    --attendance-border-soft:
-                        rgba(
-                            148,
-                            163,
-                            184,
-                            0.10
-                        );
-
-                    --attendance-text: #f8fafc;
-
-                    --attendance-text-secondary:
-                        #cbd5e1;
-
-                    --attendance-text-muted:
-                        #94a3b8;
-
-                    --attendance-text-faint:
-                        #64748b;
-
-                    --attendance-primary: #60a5fa;
-
-                    --attendance-primary-soft:
-                        rgba(
-                            59,
-                            130,
-                            246,
-                            0.10
-                        );
-
-                    --attendance-primary-border:
-                        rgba(
-                            96,
-                            165,
-                            250,
-                            0.20
-                        );
-                }
-
-                /* =================================================
-                   PAGE HEADER
-                ================================================= */
-
-                .page-header {
-                    display: flex;
-
-                    align-items: flex-start;
-
-                    justify-content:
-                        space-between;
-
-                    gap: 24px;
-
-                    margin-bottom: 26px;
-                }
-
-                .header-left {
-                    min-width: 0;
-                }
-
-                .title-row {
-                    display: flex;
-
-                    align-items: center;
-
-                    gap: 13px;
-
-                    margin-bottom: 8px;
-                }
-
-                .title-icon {
-                    width: 48px;
-
-                    height: 48px;
-
-                    flex-shrink: 0;
-
-                    display: flex;
-
-                    align-items: center;
-
-                    justify-content: center;
-
-                    border-radius: 14px;
-
-                    background:
-                        linear-gradient(
-                            135deg,
-                            #2563eb,
-                            #4f46e5
-                        );
-
-                    color: #ffffff;
-
-                    box-shadow:
-                        0 9px 22px
-                            rgba(
-                                37,
-                                99,
-                                235,
-                                0.20
-                            );
-                }
-
-                .page-title {
-                    margin: 0;
-
-                    color:
-                        var(
-                            --attendance-text
-                        ) !important;
-
-                    font-size: 30px;
-
-                    line-height: 1.15;
-
-                    font-weight: 850;
-
-                    letter-spacing: -0.8px;
-                }
-
-                .page-subtitle {
-                    margin: 0;
-
-                    color:
-                        var(
-                            --attendance-text-muted
-                        ) !important;
-
-                    font-size: 15px;
-
-                    line-height: 1.6;
-
-                    font-weight: 500;
-                }
-
-                .date-summary {
-                    min-height: 45px;
-
-                    display: inline-flex;
-
-                    align-items: center;
-
-                    gap: 9px;
-
-                    padding: 0 15px;
-
-                    border: 1px solid
-                        var(
-                            --attendance-border
-                        );
-
-                    border-radius: 12px;
-
-                    background:
-                        var(
-                            --attendance-surface
-                        );
-
-                    color:
-                        var(
-                            --attendance-text-secondary
-                        );
-
-                    font-size: 14px;
-
-                    font-weight: 750;
-
-                    white-space: nowrap;
-
-                    box-shadow:
-                        0 4px 16px
-                            rgba(
-                                15,
-                                23,
-                                42,
-                                0.05
-                            );
-                }
-
-                .date-summary svg {
-                    color:
-                        var(
-                            --attendance-primary
-                        );
-                }
-
-                /* =================================================
-                   KPI GRID
-                ================================================= */
-
-                .stats-grid {
-                    display: grid;
-
-                    grid-template-columns:
-                        repeat(
-                            5,
-                            minmax(0, 1fr)
-                        );
-
-                    gap: 15px;
-
-                    margin-bottom: 22px;
-                }
-
-                .stat-card {
-                    position: relative;
-
-                    min-height: 138px;
-
-                    padding: 20px;
-
-                    overflow: hidden;
-
-                    border: 1px solid
-                        var(
-                            --attendance-border
-                        );
-
-                    border-radius: 17px;
-
-                    background:
-                        var(
-                            --attendance-surface
-                        );
-
-                    box-shadow:
-                        0 5px 20px
-                            rgba(
-                                15,
-                                23,
-                                42,
-                                0.055
-                            );
-
-                    transition:
-                        transform 0.2s ease,
-                        box-shadow 0.2s ease,
-                        border-color 0.2s ease;
-                }
-
-                .stat-card:hover {
-                    transform:
-                        translateY(-2px);
-
-                    border-color:
-                        var(
-                            --attendance-primary-border
-                        );
-
-                    box-shadow:
-                        0 11px 28px
-                            rgba(
-                                15,
-                                23,
-                                42,
-                                0.085
-                            );
-                }
-
-                :global(.dark)
-                    .stat-card {
-                    box-shadow:
-                        0 9px 30px
-                            rgba(
-                                0,
-                                0,
-                                0,
-                                0.18
-                            );
-                }
-
-                .stat-top {
-                    display: flex;
-
-                    align-items: center;
-
-                    justify-content:
-                        space-between;
-
-                    gap: 10px;
-
-                    margin-bottom: 17px;
-                }
-
-                .stat-label {
-                    color:
-                        var(
-                            --attendance-text-muted
-                        );
-
-                    font-size: 14px;
-
-                    font-weight: 750;
-                }
-
-                .stat-icon {
-                    width: 41px;
-
-                    height: 41px;
-
-                    flex-shrink: 0;
-
-                    display: flex;
-
-                    align-items: center;
-
-                    justify-content: center;
-
-                    border-radius: 12px;
-                }
-
-                .stat-icon-blue {
-                    background: #eff6ff;
-
-                    color: #2563eb;
-
-                    border: 1px solid
-                        #dbeafe;
-                }
-
-                .stat-icon-green {
-                    background: #ecfdf5;
-
-                    color: #16a34a;
-
-                    border: 1px solid
-                        #d1fae5;
-                }
-
-                .stat-icon-red {
-                    background: #fef2f2;
-
-                    color: #dc2626;
-
-                    border: 1px solid
-                        #fee2e2;
-                }
-
-                .stat-icon-amber {
-                    background: #fff7ed;
-
-                    color: #d97706;
-
-                    border: 1px solid
-                        #ffedd5;
-                }
-
-                :global(.dark)
-                    .stat-icon-blue {
-                    background:
-                        rgba(
-                            59,
-                            130,
-                            246,
-                            0.12
-                        );
-
-                    color: #60a5fa;
-
-                    border-color:
-                        rgba(
-                            96,
-                            165,
-                            250,
-                            0.13
-                        );
-                }
-
-                :global(.dark)
-                    .stat-icon-green {
-                    background:
-                        rgba(
-                            34,
-                            197,
-                            94,
-                            0.12
-                        );
-
-                    color: #4ade80;
-
-                    border-color:
-                        rgba(
-                            74,
-                            222,
-                            128,
-                            0.13
-                        );
-                }
-
-                :global(.dark)
-                    .stat-icon-red {
-                    background:
-                        rgba(
-                            239,
-                            68,
-                            68,
-                            0.12
-                        );
-
-                    color: #f87171;
-
-                    border-color:
-                        rgba(
-                            248,
-                            113,
-                            113,
-                            0.13
-                        );
-                }
-
-                :global(.dark)
-                    .stat-icon-amber {
-                    background:
-                        rgba(
-                            245,
-                            158,
-                            11,
-                            0.12
-                        );
-
-                    color: #fbbf24;
-
-                    border-color:
-                        rgba(
-                            251,
-                            191,
-                            36,
-                            0.13
-                        );
-                }
-
-                .stat-value {
-                    color:
-                        var(
-                            --attendance-text
-                        ) !important;
-
-                    font-size: 30px;
-
-                    line-height: 1;
-
-                    font-weight: 850;
-
-                    letter-spacing: -0.7px;
-                }
-
-                .stat-note {
-                    margin-top: 9px;
-
-                    color:
-                        var(
-                            --attendance-text-faint
-                        );
-
-                    font-size: 12px;
-
-                    font-weight: 600;
-                }
-
-                /* =================================================
-                   FILTER CARD
-                ================================================= */
-
-                .filter-card {
-                    padding: 20px;
-
-                    margin-bottom: 20px;
-
-                    border: 1px solid
-                        var(
-                            --attendance-border
-                        );
-
-                    border-radius: 17px;
-
-                    background:
-                        var(
-                            --attendance-surface
-                        );
-
-                    box-shadow:
-                        0 5px 20px
-                            rgba(
-                                15,
-                                23,
-                                42,
-                                0.045
-                            );
-                }
-
-                .filter-header {
-                    display: flex;
-
-                    align-items: center;
-
-                    justify-content:
-                        space-between;
-
-                    gap: 15px;
-
-                    margin-bottom: 17px;
-                }
-
-                .filter-title {
-                    display: flex;
-
-                    align-items: center;
-
-                    gap: 9px;
-
-                    margin: 0;
-
-                    color:
-                        var(
-                            --attendance-text
-                        ) !important;
-
-                    font-size: 17px;
-
-                    font-weight: 800;
-                }
-
-                .filter-title svg {
-                    color:
-                        var(
-                            --attendance-primary
-                        );
-                }
-
-                .filter-subtitle {
-                    margin: 4px 0 0 27px;
-
-                    color:
-                        var(
-                            --attendance-text-muted
-                        );
-
-                    font-size: 13px;
-
-                    font-weight: 500;
-                }
-
-                .filters-grid {
-                    display: grid;
-
-                    grid-template-columns:
-                        minmax(250px, 1.8fr)
-                        minmax(160px, 1fr)
-                        minmax(160px, 1fr)
-                        minmax(150px, 0.9fr)
-                        auto;
-
-                    gap: 12px;
-
-                    align-items: end;
-                }
-
-                .field-group {
-                    min-width: 0;
-                }
-
-                .field-label {
-                    display: block;
-
-                    margin-bottom: 7px;
-
-                    color:
-                        var(
-                            --attendance-text-secondary
-                        );
-
-                    font-size: 12px;
-
-                    font-weight: 850;
-
-                    text-transform: uppercase;
-
-                    letter-spacing: 0.45px;
-                }
-
-                .field-wrapper {
-                    position: relative;
-                }
-
-                .field-icon {
-                    position: absolute;
-
-                    left: 14px;
-
-                    top: 50%;
-
-                    transform:
-                        translateY(-50%);
-
-                    pointer-events: none;
-
-                    color:
-                        var(
-                            --attendance-text-muted
-                        );
-                }
-
-                .field-input,
-                .field-select {
-                    width: 100%;
-
-                    height: 48px;
-
-                    padding: 0 14px;
-
-                    border: 1px solid
-                        var(
-                            --attendance-border
-                        );
-
-                    border-radius: 11px;
-
-                    background:
-                        var(
-                            --attendance-surface-soft
-                        );
-
-                    color:
-                        var(
-                            --attendance-text
-                        ) !important;
-
-                    font-family: inherit;
-
-                    font-size: 14px;
-
-                    font-weight: 650;
-
-                    outline: none;
-
-                    transition:
-                        border-color 0.2s ease,
-                        background 0.2s ease,
-                        box-shadow 0.2s ease;
-                }
-
-                .field-input.search-input {
-                    padding-left: 43px;
-                }
-
-                .field-input:hover,
-                .field-select:hover {
-                    border-color: #cbd5e1;
-
-                    background: #ffffff;
-                }
-
-                :global(.dark)
-                    .field-input:hover,
-                :global(.dark)
-                    .field-select:hover {
-                    border-color: #334155;
-
-                    background: #111a2b;
-                }
-
-                .field-input:focus,
-                .field-select:focus {
-                    border-color: #60a5fa;
-
-                    box-shadow:
-                        0 0 0 3px
-                            rgba(
-                                59,
-                                130,
-                                246,
-                                0.12
-                            );
-                }
-
-                .field-input::placeholder {
-                    color:
-                        var(
-                            --attendance-text-faint
-                        ) !important;
-
-                    opacity: 1;
-                }
-
-                .field-input[type='date'] {
-                    color-scheme: light;
-                }
-
-                :global(.dark)
-                    .field-input[type='date'] {
-                    color-scheme: dark;
-                }
-
-                .field-select {
-                    cursor: pointer;
-                }
-
-                .field-select option {
-                    background: #ffffff;
-
-                    color: #172033;
-                }
-
-                :global(.dark)
-                    .field-select option {
-                    background: #0d1422;
-
-                    color: #f8fafc;
-                }
-
-                /* =================================================
-                   EXPORT BUTTON
-                ================================================= */
-
-                .export-button {
-                    width: 100%;
-
-                    height: 48px;
-
-                    min-width: 135px;
-
-                    padding: 0 18px;
-
-                    display: inline-flex;
-
-                    align-items: center;
-
-                    justify-content: center;
-
-                    gap: 8px;
-
-                    border: none;
-
-                    border-radius: 11px;
-
-                    background:
-                        linear-gradient(
-                            135deg,
-                            #2563eb,
-                            #4f46e5
-                        );
-
-                    color: #ffffff !important;
-
-                    font-family: inherit;
-
-                    font-size: 14px;
-
-                    font-weight: 800;
-
-                    cursor: pointer;
-
-                    box-shadow:
-                        0 7px 17px
-                            rgba(
-                                37,
-                                99,
-                                235,
-                                0.18
-                            );
-
-                    transition:
-                        transform 0.2s ease,
-                        box-shadow 0.2s ease,
-                        opacity 0.2s ease;
-                }
-
-                .export-button:hover:not(
-                    :disabled
-                ) {
-                    transform:
-                        translateY(-1px);
-
-                    box-shadow:
-                        0 10px 23px
-                            rgba(
-                                37,
-                                99,
-                                235,
-                                0.25
-                            );
-                }
-
-                .export-button:disabled {
-                    opacity: 0.55;
-
-                    cursor: not-allowed;
-                }
-
-                /* =================================================
-                   RESET
-                ================================================= */
-
-                .reset-button {
-                    display: inline-flex;
-
-                    align-items: center;
-
-                    gap: 7px;
-
-                    padding: 8px 12px;
-
-                    border: 1px solid
-                        var(
-                            --attendance-border
-                        );
-
-                    border-radius: 9px;
-
-                    background:
-                        var(
-                            --attendance-surface-soft
-                        );
-
-                    color:
-                        var(
-                            --attendance-text-muted
-                        );
-
-                    font-family: inherit;
-
-                    font-size: 13px;
-
-                    font-weight: 700;
-
-                    cursor: pointer;
-
-                    transition:
-                        background 0.18s ease,
-                        border-color 0.18s ease,
-                        color 0.18s ease;
-                }
-
-                .reset-button:hover {
-                    background:
-                        var(
-                            --attendance-primary-soft
-                        );
-
-                    border-color:
-                        var(
-                            --attendance-primary-border
-                        );
-
-                    color:
-                        var(
-                            --attendance-primary
-                        );
-                }
-
-                /* =================================================
-                   TABLE CARD
-                ================================================= */
-
-                .table-card {
-                    overflow: hidden;
-
-                    border: 1px solid
-                        var(
-                            --attendance-border
-                        );
-
-                    border-radius: 17px;
-
-                    background:
-                        var(
-                            --attendance-surface
-                        );
-
-                    box-shadow:
-                        0 5px 22px
-                            rgba(
-                                15,
-                                23,
-                                42,
-                                0.055
-                            );
-                }
-
-                :global(.dark)
-                    .table-card {
-                    box-shadow:
-                        0 9px 30px
-                            rgba(
-                                0,
-                                0,
-                                0,
-                                0.18
-                            );
-                }
-
-                .table-topbar {
-                    min-height: 69px;
-
-                    padding: 15px 22px;
-
-                    display: flex;
-
-                    align-items: center;
-
-                    justify-content:
-                        space-between;
-
-                    gap: 15px;
-
-                    border-bottom: 1px solid
-                        var(
-                            --attendance-border
-                        );
-
-                    background:
-                        var(
-                            --attendance-surface
-                        );
-                }
-
-                .table-heading {
-                    display: flex;
-
-                    align-items: center;
-
-                    gap: 11px;
-                }
-
-                .table-heading-icon {
-                    width: 37px;
-
-                    height: 37px;
-
-                    display: flex;
-
-                    align-items: center;
-
-                    justify-content: center;
-
-                    border-radius: 10px;
-
-                    background: #eff6ff;
-
-                    border: 1px solid
-                        #dbeafe;
-
-                    color: #2563eb;
-                }
-
-                :global(.dark)
-                    .table-heading-icon {
-                    background:
-                        rgba(
-                            59,
-                            130,
-                            246,
-                            0.11
-                        );
-
-                    border-color:
-                        rgba(
-                            96,
-                            165,
-                            250,
-                            0.13
-                        );
-
-                    color: #60a5fa;
-                }
-
-                .table-title {
-                    margin: 0;
-
-                    color:
-                        var(
-                            --attendance-text
-                        ) !important;
-
-                    font-size: 17px;
-
-                    font-weight: 800;
-                }
-
-                .record-count {
-                    display: inline-flex;
-
-                    align-items: center;
-
-                    justify-content: center;
-
-                    min-width: 30px;
-
-                    height: 26px;
-
-                    padding: 0 9px;
-
-                    margin-left: 8px;
-
-                    border-radius: 20px;
-
-                    background: #eff6ff;
-
-                    border: 1px solid
-                        #dbeafe;
-
-                    color: #2563eb;
-
-                    font-size: 12px;
-
-                    font-weight: 850;
-                }
-
-                :global(.dark)
-                    .record-count {
-                    background:
-                        rgba(
-                            59,
-                            130,
-                            246,
-                            0.11
-                        );
-
-                    border-color:
-                        rgba(
-                            96,
-                            165,
-                            250,
-                            0.16
-                        );
-
-                    color: #93c5fd;
-                }
-
-                .table-date {
-                    display: flex;
-
-                    align-items: center;
-
-                    gap: 8px;
-
-                    color:
-                        var(
-                            --attendance-text-muted
-                        );
-
-                    font-size: 13px;
-
-                    font-weight: 700;
-                }
-
-                .table-date svg {
-                    color:
-                        var(
-                            --attendance-primary
-                        );
-                }
-
-                /* =================================================
-                   TABLE
-                ================================================= */
-
-                .table-scroll {
-                    width: 100%;
-
-                    overflow-x: auto;
-                }
-
-                .table-inner {
-                    min-width: 1040px;
-                }
-
-                .table-header,
-                .table-row {
-                    display: grid;
-
-                    grid-template-columns:
-                        1.75fr
-                        1.2fr
-                        1fr
-                        0.9fr
-                        0.9fr
-                        1.05fr
-                        0.8fr;
-
-                    align-items: center;
-                }
-
-                .table-header {
-                    min-height: 53px;
-
-                    padding: 0 24px;
-
-                    background:
-                        var(
-                            --attendance-surface-soft
-                        );
-
-                    border-bottom: 1px solid
-                        var(
-                            --attendance-border
-                        );
-                }
-
-                .header-cell {
-                    color:
-                        var(
-                            --attendance-text-muted
-                        );
-
-                    font-size: 11px;
-
-                    font-weight: 850;
-
-                    text-transform: uppercase;
-
-                    letter-spacing: 0.7px;
-                }
-
-                .table-row {
-                    min-height: 81px;
-
-                    padding: 0 24px;
-
-                    background:
-                        var(
-                            --attendance-surface
-                        );
-
-                    border-bottom: 1px solid
-                        var(
-                            --attendance-border-soft
-                        );
-
-                    transition:
-                        background 0.18s ease;
-                }
-
-                .table-row:last-child {
-                    border-bottom: none;
-                }
-
-                .table-row:hover {
-                    background:
-                        var(
-                            --attendance-surface-hover
-                        );
-                }
-
-                /* =================================================
-                   EMPLOYEE CELL
-                ================================================= */
-
-                .employee-cell {
-                    display: flex;
-
-                    align-items: center;
-
-                    gap: 12px;
-
-                    min-width: 0;
-                }
-
-                .employee-avatar {
-                    width: 43px;
-
-                    height: 43px;
-
-                    flex-shrink: 0;
-
-                    display: flex;
-
-                    align-items: center;
-
-                    justify-content: center;
-
-                    border-radius: 12px;
-
-                    background:
-                        linear-gradient(
-                            135deg,
-                            #dbeafe,
-                            #e0e7ff
-                        );
-
-                    border: 1px solid
-                        #bfdbfe;
-
-                    color: #1d4ed8;
-
-                    font-size: 14px;
-
-                    font-weight: 850;
-                }
-
-                :global(.dark)
-                    .employee-avatar {
-                    background:
-                        linear-gradient(
-                            135deg,
-                            rgba(
-                                37,
-                                99,
-                                235,
-                                0.18
-                            ),
-                            rgba(
-                                79,
-                                70,
-                                229,
-                                0.18
-                            )
-                        );
-
-                    border-color:
-                        rgba(
-                            96,
-                            165,
-                            250,
-                            0.16
-                        );
-
-                    color: #93c5fd;
-                }
-
-                .employee-info {
-                    min-width: 0;
-                }
-
-                .employee-name {
-                    overflow: hidden;
-
-                    text-overflow: ellipsis;
-
-                    white-space: nowrap;
-
-                    color:
-                        var(
-                            --attendance-text
-                        ) !important;
-
-                    font-size: 15px;
-
-                    line-height: 1.35;
-
-                    font-weight: 800;
-                }
-
-                .employee-code {
-                    margin-top: 4px;
-
-                    overflow: hidden;
-
-                    text-overflow: ellipsis;
-
-                    white-space: nowrap;
-
-                    color:
-                        var(
-                            --attendance-text-faint
-                        );
-
-                    font-size: 12px;
-
-                    font-weight: 600;
-                }
-
-                /* =================================================
-                   TABLE DATA
-                ================================================= */
-
-                .department-cell,
-                .time-cell,
-                .break-cell {
-                    color:
-                        var(
-                            --attendance-text-secondary
-                        );
-
-                    font-size: 14px;
-
-                    line-height: 1.4;
-
-                    font-weight: 600;
-                }
-
-                .department-cell {
-                    overflow: hidden;
-
-                    text-overflow: ellipsis;
-
-                    white-space: nowrap;
-                }
-
-                .time-cell {
-                    display: flex;
-
-                    align-items: center;
-
-                    gap: 7px;
-                }
-
-                .time-icon {
-                    flex-shrink: 0;
-
-                    color:
-                        var(
-                            --attendance-text-faint
-                        );
-                }
-
-                .break-cell {
-                    overflow: hidden;
-
-                    text-overflow: ellipsis;
-
-                    white-space: nowrap;
-                }
-
-                .break-cell.active {
-                    width: fit-content;
-
-                    padding: 6px 9px;
-
-                    border-radius: 8px;
-
-                    background: #fff7ed;
-
-                    border: 1px solid
-                        #fed7aa;
-
-                    color: #d97706;
-
-                    font-weight: 800;
-                }
-
-                :global(.dark)
-                    .break-cell.active {
-                    background:
-                        rgba(
-                            245,
-                            158,
-                            11,
-                            0.10
-                        );
-
-                    border-color:
-                        rgba(
-                            245,
-                            158,
-                            11,
-                            0.18
-                        );
-
-                    color: #fbbf24;
-                }
-
-                /* =================================================
-                   STATUS BADGE
-                ================================================= */
-
-                .status-badge {
-                    display: inline-flex;
-
-                    align-items: center;
-
-                    justify-content: center;
-
-                    gap: 7px;
-
-                    min-height: 31px;
-
-                    padding: 5px 11px;
-
-                    border: 1px solid;
-
-                    border-radius: 20px;
-
-                    font-size: 11px;
-
-                    line-height: 1;
-
-                    font-weight: 850;
-
-                    white-space: nowrap;
-
-                    text-transform: uppercase;
-
-                    letter-spacing: 0.35px;
-                }
-
-                .status-dot {
-                    width: 7px;
-
-                    height: 7px;
-
-                    flex-shrink: 0;
-
-                    border-radius: 50%;
-
-                    background: currentColor;
-                }
-
-                /* =================================================
-                   DARK STATUS BADGES
-                ================================================= */
-
-                :global(.dark)
-                    .status-badge[
-                        style*="rgb(22, 163, 74)"
-                    ] {
-                    background:
-                        rgba(
-                            34,
-                            197,
-                            94,
-                            0.12
-                        ) !important;
-
-                    color: #4ade80 !important;
-
-                    border-color:
-                        rgba(
-                            34,
-                            197,
-                            94,
-                            0.24
-                        ) !important;
-                }
-
-                /* =================================================
-                   VIEW BUTTON
-                ================================================= */
-
-                .view-button {
-                    display: inline-flex;
-
-                    align-items: center;
-
-                    justify-content: center;
-
-                    gap: 6px;
-
-                    min-height: 38px;
-
-                    padding: 0 13px;
-
-                    border: 1px solid
-                        #bfdbfe;
-
-                    border-radius: 10px;
-
-                    background: #eff6ff;
-
-                    color: #2563eb;
-
-                    font-family: inherit;
-
-                    font-size: 13px;
-
-                    font-weight: 800;
-
-                    cursor: pointer;
-
-                    transition:
-                        background 0.18s ease,
-                        border-color 0.18s ease,
-                        color 0.18s ease,
-                        transform 0.18s ease;
-                }
-
-                .view-button:hover {
-                    transform:
-                        translateY(-1px);
-
-                    background: #dbeafe;
-
-                    border-color: #93c5fd;
-
-                    color: #1d4ed8;
-                }
-
-                :global(.dark)
-                    .view-button {
-                    background:
-                        rgba(
-                            59,
-                            130,
-                            246,
-                            0.09
-                        );
-
-                    border-color:
-                        rgba(
-                            96,
-                            165,
-                            250,
-                            0.18
-                        );
-
-                    color: #93c5fd;
-                }
-
-                :global(.dark)
-                    .view-button:hover {
-                    background:
-                        rgba(
-                            59,
-                            130,
-                            246,
-                            0.16
-                        );
-
-                    border-color:
-                        rgba(
-                            96,
-                            165,
-                            250,
-                            0.32
-                        );
-
-                    color: #bfdbfe;
-                }
-
-                /* =================================================
-                   LOADING
-                ================================================= */
-
-                .loading-state,
-                .empty-state {
-                    min-height: 310px;
-
-                    display: flex;
-
-                    flex-direction: column;
-
-                    align-items: center;
-
-                    justify-content: center;
-
-                    padding: 50px;
-
-                    text-align: center;
-
-                    background:
-                        var(
-                            --attendance-surface
-                        );
-                }
-
-                .loading-spinner {
-                    color:
-                        var(
-                            --attendance-primary
-                        );
-
-                    animation:
-                        attendance-spin
-                        0.9s linear infinite;
-                }
-
-                .loading-state
-                    .loading-spinner {
-                    margin-bottom: 13px;
-                }
-
-                .loading-text {
-                    color:
-                        var(
-                            --attendance-text-muted
-                        );
-
-                    font-size: 14px;
-
-                    font-weight: 700;
-                }
-
-                /* =================================================
-                   EMPTY STATE
-                ================================================= */
-
-                .empty-icon {
-                    width: 54px;
-
-                    height: 54px;
-
-                    display: flex;
-
-                    align-items: center;
-
-                    justify-content: center;
-
-                    margin-bottom: 14px;
-
-                    border: 1px solid
-                        var(
-                            --attendance-border
-                        );
-
-                    border-radius: 15px;
-
-                    background:
-                        var(
-                            --attendance-surface-soft
-                        );
-
-                    color:
-                        var(
-                            --attendance-text-muted
-                        );
-                }
-
-                .empty-title {
-                    margin: 0 0 6px;
-
-                    color:
-                        var(
-                            --attendance-text
-                        );
-
-                    font-size: 17px;
-
-                    font-weight: 800;
-                }
-
-                .empty-description {
-                    margin: 0;
-
-                    color:
-                        var(
-                            --attendance-text-muted
-                        );
-
-                    font-size: 13px;
-
-                    font-weight: 500;
-                }
-
-                /* =================================================
-                   PAGINATION
-                ================================================= */
-
-                .pagination {
-                    min-height: 70px;
-
-                    padding: 13px 21px;
-
-                    display: flex;
-
-                    align-items: center;
-
-                    justify-content:
-                        space-between;
-
-                    gap: 15px;
-
-                    border-top: 1px solid
-                        var(
-                            --attendance-border
-                        );
-
-                    background:
-                        var(
-                            --attendance-surface
-                        );
-                }
-
-                .pagination-info {
-                    color:
-                        var(
-                            --attendance-text-muted
-                        );
-
-                    font-size: 13px;
-
-                    font-weight: 700;
-                }
-
-                .pagination-controls {
-                    display: flex;
-
-                    align-items: center;
-
-                    gap: 8px;
-                }
-
-                .page-button {
-                    min-width: 40px;
-
-                    height: 40px;
-
-                    padding: 0 12px;
-
-                    display: inline-flex;
-
-                    align-items: center;
-
-                    justify-content: center;
-
-                    gap: 6px;
-
-                    border: 1px solid
-                        var(
-                            --attendance-border
-                        );
-
-                    border-radius: 9px;
-
-                    background:
-                        var(
-                            --attendance-surface-soft
-                        );
-
-                    color:
-                        var(
-                            --attendance-text-secondary
-                        );
-
-                    font-family: inherit;
-
-                    font-size: 13px;
-
-                    font-weight: 800;
-
-                    cursor: pointer;
-
-                    transition:
-                        background 0.18s ease,
-                        border-color 0.18s ease,
-                        color 0.18s ease;
-                }
-
-                .page-button:hover:not(
-                    :disabled
-                ) {
-                    background:
-                        var(
-                            --attendance-primary-soft
-                        );
-
-                    border-color:
-                        var(
-                            --attendance-primary-border
-                        );
-
-                    color:
-                        var(
-                            --attendance-primary
-                        );
-                }
-
-                .page-button:disabled {
-                    opacity: 0.4;
-
-                    cursor: not-allowed;
-                }
-
-                .page-number {
-                    min-width: 40px;
-
-                    height: 40px;
-
-                    display: inline-flex;
-
-                    align-items: center;
-
-                    justify-content: center;
-
-                    border-radius: 9px;
-
-                    background: #eff6ff;
-
-                    border: 1px solid
-                        #dbeafe;
-
-                    color: #2563eb;
-
-                    font-size: 13px;
-
-                    font-weight: 850;
-                }
-
-                :global(.dark)
-                    .page-number {
-                    background:
-                        rgba(
-                            59,
-                            130,
-                            246,
-                            0.11
-                        );
-
-                    border-color:
-                        rgba(
-                            96,
-                            165,
-                            250,
-                            0.18
-                        );
-
-                    color: #93c5fd;
-                }
-
-                /* =================================================
-                   SCROLLBAR
-                ================================================= */
-
-                .attendance-page
-                    ::-webkit-scrollbar {
-                    width: 7px;
-
-                    height: 7px;
-                }
-
-                .attendance-page
-                    ::-webkit-scrollbar-track {
-                    background: transparent;
-                }
-
-                .attendance-page
-                    ::-webkit-scrollbar-thumb {
-                    background: #cbd5e1;
-
-                    border-radius: 20px;
-                }
-
-                :global(.dark)
-                    .attendance-page
-                    ::-webkit-scrollbar-thumb {
-                    background: #26344a;
-                }
-
-                /* =================================================
-                   RESPONSIVE
-                ================================================= */
-
-                @media (max-width: 1250px) {
-                    .stats-grid {
-                        grid-template-columns:
-                            repeat(
-                                3,
-                                minmax(0, 1fr)
-                            );
-                    }
-
-                    .filters-grid {
-                        grid-template-columns:
-                            repeat(
-                                2,
-                                minmax(0, 1fr)
-                            );
-                    }
-                }
-
-                @media (max-width: 800px) {
-                    .page-header {
-                        flex-direction: column;
-                    }
-
-                    .date-summary {
-                        width: 100%;
-
-                        justify-content: center;
-                    }
-
-                    .page-title {
-                        font-size: 27px;
-                    }
-
-                    .stats-grid {
-                        grid-template-columns:
-                            repeat(
-                                2,
-                                minmax(0, 1fr)
-                            );
-                    }
-
-                    .filters-grid {
-                        grid-template-columns: 1fr;
-                    }
-
-                    .filter-header {
-                        align-items:
-                            flex-start;
-                    }
-
-                    .table-topbar {
-                        align-items:
-                            flex-start;
-
-                        flex-direction: column;
-                    }
-
-                    .pagination {
-                        flex-direction: column;
-
-                        align-items:
-                            stretch;
-                    }
-
-                    .pagination-controls {
-                        justify-content: center;
-                    }
-                }
-
-                @media (max-width: 520px) {
-                    .stats-grid {
-                        grid-template-columns: 1fr;
-                    }
-
-                    .title-icon {
-                        width: 43px;
-
-                        height: 43px;
-
-                        border-radius: 13px;
-                    }
-
-                    .page-title {
-                        font-size: 24px;
-                    }
-
-                    .filter-card {
-                        padding: 16px;
-                    }
-
-                    .table-topbar {
-                        padding: 14px 16px;
-                    }
-                }
-
-                @keyframes attendance-spin {
-                    from {
-                        transform:
-                            rotate(0deg);
-                    }
-
-                    to {
-                        transform:
-                            rotate(360deg);
-                    }
-                }
-
-                /* =================================================
-                   INPUT PLACEHOLDER
-                ================================================= */
-
-                .attendance-page
-                    input::placeholder {
-                    color:
-                        var(
-                            --attendance-text-faint
-                        ) !important;
-
-                    opacity: 1 !important;
-                }
-
-            `}</style>
-
-            {/* =====================================================
-                HEADER
-            ===================================================== */}
-
-            <div className="page-header">
-                <div className="header-left">
-                    <div className="title-row">
-                        <div className="title-icon">
-                            <Clock3 size={23} />
-                        </div>
-
-                        <h1 className="page-title">
-                            Attendance Report
-                        </h1>
-                    </div>
-
-                    <p className="page-subtitle">
-                        Monitor employee attendance,
-                        working hours and daily
-                        attendance status.
-                    </p>
-                </div>
-
-                <div className="date-summary">
-                    <CalendarDays size={17} />
-
-                    <span>
-                        {fromDate === toDate
-                            ? formatDisplayDate(
-                                toDate
-                            )
-                            : `${formatDisplayDate(
-                                fromDate
-                            )} → ${formatDisplayDate(
-                                toDate
-                            )}`}
-                    </span>
-                </div>
-            </div>
-
-            {/* =====================================================
-                KPI CARDS
-            ===================================================== */}
-
-            <div className="stats-grid">
-
-                {/* TOTAL */}
-
-                <div className="stat-card">
-                    <div className="stat-top">
-                        <span className="stat-label">
-                            Total Employees
-                        </span>
-
-                        <div className="stat-icon stat-icon-blue">
-                            <Users size={20} />
-                        </div>
-                    </div>
-
-                    <div className="stat-value">
-                        {summary.total}
-                    </div>
-
-                    <div className="stat-note">
-                        Employees on this page
-                    </div>
-                </div>
-
-                {/* PRESENT */}
-
-                <div className="stat-card">
-                    <div className="stat-top">
-                        <span className="stat-label">
-                            Present
-                        </span>
-
-                        <div className="stat-icon stat-icon-green">
-                            <CheckCircle2
-                                size={20}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="stat-value">
-                        {summary.present}
-                    </div>
-
-                    <div className="stat-note">
-                        Checked in today
-                    </div>
-                </div>
-
-                {/* ABSENT */}
-
-                <div className="stat-card">
-                    <div className="stat-top">
-                        <span className="stat-label">
-                            Absent
-                        </span>
-
-                        <div className="stat-icon stat-icon-red">
-                            <XCircle size={20} />
-                        </div>
-                    </div>
-
-                    <div className="stat-value">
-                        {summary.absent}
-                    </div>
-
-                    <div className="stat-note">
-                        No attendance recorded
-                    </div>
-                </div>
-
-                {/* LEAVE */}
-
-                <div className="stat-card">
-                    <div className="stat-top">
-                        <span className="stat-label">
-                            On Leave
-                        </span>
-
-                        <div className="stat-icon stat-icon-blue">
-                            <CalendarDays
-                                size={20}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="stat-value">
-                        {summary.leave}
-                    </div>
-
-                    <div className="stat-note">
-                        Approved leave
-                    </div>
-                </div>
-
-                {/* BREAK */}
-
-                <div className="stat-card">
-                    <div className="stat-top">
-                        <span className="stat-label">
-                            On Break
-                        </span>
-
-                        <div className="stat-icon stat-icon-amber">
-                            <Coffee size={20} />
-                        </div>
-                    </div>
-
-                    <div className="stat-value">
-                        {summary.onBreak}
-                    </div>
-
-                    <div className="stat-note">
-                        Currently on break
-                    </div>
-                </div>
-            </div>
-
-            {/* =====================================================
-                FILTERS
-            ===================================================== */}
-
-            <div className="filter-card">
-                <div className="filter-header">
+        <div className="att">
+            <div className="wrap">
+
+                {/* header */}
+                <header className="head">
                     <div>
-                        <h2 className="filter-title">
-                            <SlidersHorizontal
-                                size={18}
-                            />
-
-                            Attendance Filters
-                        </h2>
-
-                        <p className="filter-subtitle">
-                            Search and filter
-                            attendance records.
-                        </p>
+                        <h1>Attendance report</h1>
+                        <p>{longDate(toDate)}</p>
                     </div>
 
-                    {hasFilters && (
-                        <button
-                            type="button"
-                            className="reset-button"
-                            onClick={
-                                clearFilters
-                            }
-                        >
-                            <RefreshCw
-                                size={14}
-                            />
-
-                            Reset filters
+                    <div className="head-actions">
+                        <label className="date">
+                            <CalendarDays size={16} />
+                            <span>From</span>
+                            <input type="date" value={fromDate} max={maxDate} onChange={(e) => changeFrom(e.target.value)} />
+                        </label>
+                        <label className="date">
+                            <CalendarDays size={16} />
+                            <span>To</span>
+                            <input type="date" value={toDate} min={fromDate} max={maxDate} onChange={(e) => changeTo(e.target.value)} />
+                        </label>
+                        <button type="button" className="btn icon" onClick={() => setRefreshKey((k) => k + 1)} disabled={loading} aria-label="Refresh">
+                            {loading ? <Loader2 size={17} className="spin" /> : <RefreshCw size={17} />}
                         </button>
-                    )}
-                </div>
-
-                <div className="filters-grid">
-
-                    {/* SEARCH */}
-
-                    <div className="field-group">
-                        <label className="field-label">
-                            Search employee
-                        </label>
-
-                        <div className="field-wrapper">
-                            <Search
-                                size={18}
-                                className="field-icon"
-                            />
-
-                            <input
-                                type="text"
-                                className="field-input search-input"
-                                placeholder="Search by name, employee code or ID..."
-                                value={search}
-                                onChange={(event) => {
-                                    setSearch(
-                                        event.target
-                                            .value
-                                    );
-
-                                    setPage(0);
-                                }}
-                            />
-                        </div>
+                        <button type="button" className="btn primary" onClick={handleExport} disabled={exporting}>
+                            {exporting ? <Loader2 size={17} className="spin" /> : <Download size={17} />}
+                            {exporting ? 'Exporting…' : 'Export Excel'}
+                        </button>
                     </div>
+                </header>
 
-                    {/* FROM DATE */}
+                {/* status cards (click to filter) */}
+                <section className="cards" aria-label="Summary">
+                    {STATUSES.map(({ key, label, cls, Icon }) => {
+                        const share = counts.total ? Math.round((counts[key] / counts.total) * 100) : 0;
+                        return (
+                            <button key={key} type="button" className={`card ${cls} ${statusFilter === key ? 'on' : ''}`}
+                                onClick={() => toggleStatus(key)} aria-pressed={statusFilter === key}>
+                                <span className="card-icon"><Icon size={22} /></span>
+                                <span className="card-text">
+                                    <span className="card-num">{counts[key]}</span>
+                                    <span className="card-label">{label}</span>
+                                </span>
+                                <span className="card-share">{share}%</span>
+                            </button>
+                        );
+                    })}
+                </section>
 
-                    <div className="field-group">
-                        <label className="field-label">
-                            From date
-                        </label>
-
-                        <input
-                            type="date"
-                            className="field-input"
-                            value={fromDate}
-                            max={maxDate}
-                            onChange={
-                                handleFromDateChange
-                            }
-                        />
-                    </div>
-
-                    {/* TO DATE */}
-
-                    <div className="field-group">
-                        <label className="field-label">
-                            To date
-                        </label>
-
-                        <input
-                            type="date"
-                            className="field-input"
-                            value={toDate}
-                            max={maxDate}
-                            onChange={
-                                handleToDateChange
-                            }
-                        />
-                    </div>
-
-                    {/* STATUS */}
-
-                    <div className="field-group">
-                        <label className="field-label">
-                            Status
-                        </label>
-
-                        <select
-                            className="field-select"
-                            value={
-                                statusFilter
-                            }
-                            onChange={(event) => {
-                                setStatusFilter(
-                                    event.target
-                                        .value
-                                );
-
-                                setPage(0);
-                            }}
-                        >
-                            <option value="ALL">
-                                All Status
-                            </option>
-
-                            <option value="PRESENT">
-                                Present
-                            </option>
-
-                            <option value="HALF_DAY">
-                                Half Day
-                            </option>
-
-                            <option value="ON_LEAVE">
-                                On Leave
-                            </option>
-
-                            <option value="ABSENT">
-                                Absent
-                            </option>
-                        </select>
-                    </div>
-
-                    {/* EXPORT */}
-
-                    <div className="field-group">
-                        <label className="field-label">
-                            &nbsp;
-                        </label>
-
-                        <button
-                            type="button"
-                            className="export-button"
-                            onClick={
-                                handleExport
-                            }
-                            disabled={exporting}
-                        >
-                            {exporting ? (
-                                <>
-                                    <Loader2
-                                        size={18}
-                                        className="loading-spinner"
-                                        style={{
-                                            margin: 0,
-                                        }}
-                                    />
-
-                                    Exporting...
-                                </>
-                            ) : (
-                                <>
-                                    <Download
-                                        size={18}
-                                    />
-
-                                    Export Excel
-                                </>
+                {/* table card */}
+                <section className="panel">
+                    <div className="tools">
+                        <div className="search">
+                            <Search size={17} />
+                            <input type="text" value={search} placeholder="Search by name, code or ID" aria-label="Search employees"
+                                onChange={(e) => { setSearch(e.target.value); setPage(0); }} />
+                            {search && (
+                                <button type="button" className="x" aria-label="Clear search" onClick={() => setSearch('')}><X size={14} /></button>
                             )}
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            {/* =====================================================
-                ATTENDANCE TABLE
-            ===================================================== */}
-
-            <div className="table-card">
-
-                {/* TABLE TOP BAR */}
-
-                <div className="table-topbar">
-                    <div className="table-heading">
-                        <div className="table-heading-icon">
-                            <Building2
-                                size={18}
-                            />
                         </div>
 
-                        <h2 className="table-title">
-                            Employee Attendance
+                        <div className="select">
+                            <select value={statusFilter} aria-label="Status"
+                                onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }}>
+                                <option value="ALL">All statuses</option>
+                                {STATUSES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+                            </select>
+                            <ChevronDown size={16} />
+                        </div>
 
-                            <span className="record-count">
-                                {
-                                    filteredRows.length
-                                }
-                            </span>
-                        </h2>
-                    </div>
+                        {counts.onBreak > 0 && (
+                            <span className="break-note"><Coffee size={14} /> {counts.onBreak} on break now</span>
+                        )}
 
-                    <div className="table-date">
-                        <CalendarDays
-                            size={16}
-                        />
-
-                        {formatDisplayDate(
-                            toDate
+                        {hasFilters && (
+                            <button type="button" className="link" onClick={clearFilters}>Clear filters</button>
                         )}
                     </div>
-                </div>
 
-                {/* TABLE */}
-
-                <div className="table-scroll">
-                    <div className="table-inner">
-
-                        {/* HEADER */}
-
-                        <div className="table-header">
-                            <div className="header-cell">
-                                Employee
+                    <div className="scroll">
+                        <div className="table">
+                            <div className="tr th">
+                                <div className="sticky">Employee</div>
+                                <div>Department</div>
+                                <div>Status</div>
+                                <div>Check in</div>
+                                <div>Check out</div>
+                                <div>Breaks</div>
+                                <div />
                             </div>
 
-                            <div className="header-cell">
-                                Department
-                            </div>
-
-                            <div className="header-cell">
-                                Status
-                            </div>
-
-                            <div className="header-cell">
-                                Check In
-                            </div>
-
-                            <div className="header-cell">
-                                Check Out
-                            </div>
-
-                            <div className="header-cell">
-                                Break
-                            </div>
-
-                            <div className="header-cell">
-                                Action
-                            </div>
-                        </div>
-
-                        {/* LOADING */}
-
-                        {loading ? (
-                            <div className="loading-state">
-                                <Loader2
-                                    size={31}
-                                    className="loading-spinner"
-                                />
-
-                                <div className="loading-text">
-                                    Loading attendance
-                                    records...
+                            {loading ? (
+                                Array.from({ length: 7 }).map((_, i) => <div key={i} className="skel" />)
+                            ) : filteredRows.length === 0 ? (
+                                <div className="empty">
+                                    <div className="empty-icon"><SearchX size={24} /></div>
+                                    <h3>No records found</h3>
+                                    <p>{hasFilters ? 'No employee matches this search and status.' : 'No attendance has been recorded for this date.'}</p>
+                                    {hasFilters && <button type="button" className="btn" onClick={clearFilters}>Clear filters</button>}
                                 </div>
-                            </div>
-                        ) : filteredRows.length ===
-                            0 ? (
-                            /* EMPTY */
-
-                            <div className="empty-state">
-                                <div className="empty-icon">
-                                    <Search
-                                        size={25}
-                                    />
-                                </div>
-
-                                <h3 className="empty-title">
-                                    No attendance
-                                    records found
-                                </h3>
-
-                                <p className="empty-description">
-                                    Try changing your
-                                    search, date or
-                                    status filters.
-                                </p>
-                            </div>
-                        ) : (
-                            /* ROWS */
-
-                            filteredRows.map(
-                                (row) => {
-                                    const initials =
-                                        getEmployeeInitials(
-                                            row?.employeeName
-                                        );
-
+                            ) : (
+                                filteredRows.map((row, i) => {
+                                    const meta = statusMeta(row?.status);
+                                    const name = row?.employeeName || 'Unknown employee';
+                                    const breaks = Array.isArray(row?.breaks) ? row.breaks : [];
+                                    const hue = hueFor(row?.employeeId || name);
                                     return (
-                                        <div
-                                            key={`${row?.employeeId}-${row?.employeeCode || ''}`}
-                                            className="table-row"
-                                        >
-
-                                            {/* EMPLOYEE */}
-
-                                            <div className="employee-cell">
-                                                <div className="employee-avatar">
-                                                    {
-                                                        initials
-                                                    }
-                                                </div>
-
-                                                <div className="employee-info">
-                                                    <div className="employee-name">
-                                                        {
-                                                            row?.employeeName
-                                                        }
-                                                    </div>
-
-                                                    <div className="employee-code">
-                                                        {row?.employeeCode ||
-                                                            `ID: ${row?.employeeId}`}
-                                                    </div>
-                                                </div>
+                                        <div key={`${row?.employeeId}-${i}`} className="tr row" onClick={() => setSelectedEmployeeId(row?.employeeId)}>
+                                            <div className="sticky emp">
+                                                <span className="avatar" style={{ '--h': hue }}>{initials(name)}</span>
+                                                <span className="emp-text">
+                                                    <b>{name}</b>
+                                                    <small>{row?.employeeCode || `ID ${row?.employeeId}`}</small>
+                                                </span>
                                             </div>
-
-                                            {/* DEPARTMENT */}
-
-                                            <div className="department-cell">
-                                                {row?.departmentName ||
-                                                    '—'}
+                                            <div className="dept">{row?.departmentName || row?.department || '—'}</div>
+                                            <div><span className={`pill ${meta.cls}`}>{meta.label}</span></div>
+                                            <div className="mono">{time5(row?.checkIn) || <span className="faint">—</span>}</div>
+                                            <div className="mono">{time5(row?.checkOut) || <span className="faint">—</span>}</div>
+                                            <div className="brk">
+                                                {row?.onBreak ? (
+                                                    <span className="live"><i />On break</span>
+                                                ) : breaks.length === 0 ? (
+                                                    <span className="faint">—</span>
+                                                ) : (
+                                                    <>
+                                                        {breaks.length} {breaks.length === 1 ? 'break' : 'breaks'}
+                                                        <small>{formatBreaks(breaks)}</small>
+                                                    </>
+                                                )}
                                             </div>
-
-                                            {/* STATUS */}
-
-                                            <div>
-                                                <StatusBadge
-                                                    status={
-                                                        row?.status
-                                                    }
-                                                />
-                                            </div>
-
-                                            {/* CHECK IN */}
-
-                                            <div className="time-cell">
-                                                <Clock3
-                                                    size={
-                                                        15
-                                                    }
-                                                    className="time-icon"
-                                                />
-
-                                                {row?.checkIn
-                                                    ? String(
-                                                        row.checkIn
-                                                    ).slice(
-                                                        0,
-                                                        5
-                                                    )
-                                                    : '--'}
-                                            </div>
-
-                                            {/* CHECK OUT */}
-
-                                            <div className="time-cell">
-                                                <Clock3
-                                                    size={
-                                                        15
-                                                    }
-                                                    className="time-icon"
-                                                />
-
-                                                {row?.checkOut
-                                                    ? String(
-                                                        row.checkOut
-                                                    ).slice(
-                                                        0,
-                                                        5
-                                                    )
-                                                    : '--'}
-                                            </div>
-
-                                            {/* BREAK */}
-
-                                            <div
-                                                className={`break-cell ${row?.onBreak
-                                                        ? 'active'
-                                                        : ''
-                                                    }`}
-                                            >
-                                                {row?.onBreak
-                                                    ? 'On break'
-                                                    : formatBreakTimes(
-                                                        row?.breaks
-                                                    )}
-                                            </div>
-
-                                            {/* VIEW */}
-
-                                            <div>
-                                                <button
-                                                    type="button"
-                                                    className="view-button"
-                                                    onClick={() =>
-                                                        setSelectedEmployeeId(
-                                                            row?.employeeId
-                                                        )
-                                                    }
-                                                >
-                                                    <Eye
-                                                        size={
-                                                            16
-                                                        }
-                                                    />
-
-                                                    View
+                                            <div className="end">
+                                                <button type="button" className="view" aria-label={`View ${name}`}
+                                                    onClick={(e) => { e.stopPropagation(); setSelectedEmployeeId(row?.employeeId); }}>
+                                                    <Eye size={16} /> View
                                                 </button>
                                             </div>
                                         </div>
                                     );
-                                }
-                            )
-                        )}
-                    </div>
-                </div>
-
-                {/* =================================================
-                    PAGINATION
-                ================================================= */}
-
-                {totalPages > 1 && (
-                    <div className="pagination">
-
-                        <div className="pagination-info">
-                            Showing page{' '}
-                            {page + 1} of{' '}
-                            {totalPages}
-                        </div>
-
-                        <div className="pagination-controls">
-
-                            <button
-                                type="button"
-                                className="page-button"
-                                disabled={
-                                    page === 0
-                                }
-                                onClick={() =>
-                                    setPage(
-                                        (currentPage) =>
-                                            Math.max(
-                                                0,
-                                                currentPage -
-                                                1
-                                            )
-                                    )
-                                }
-                            >
-                                <ChevronLeft
-                                    size={17}
-                                />
-
-                                Prev
-                            </button>
-
-                            <span className="page-number">
-                                {page + 1}
-                            </span>
-
-                            <button
-                                type="button"
-                                className="page-button"
-                                disabled={
-                                    page + 1 >=
-                                    totalPages
-                                }
-                                onClick={() =>
-                                    setPage(
-                                        (currentPage) =>
-                                            currentPage +
-                                            1
-                                    )
-                                }
-                            >
-                                Next
-
-                                <ChevronRight
-                                    size={17}
-                                />
-                            </button>
-
+                                })
+                            )}
                         </div>
                     </div>
-                )}
+
+                    {!loading && totalPages > 1 && (
+                        <div className="pager">
+                            <span>Page <b>{page + 1}</b> of <b>{totalPages}</b></span>
+                            <div className="pager-btns">
+                                <button type="button" className="btn" disabled={page === 0} onClick={() => setPage((p) => Math.max(p - 1, 0))}>
+                                    <ChevronLeft size={16} /> Previous
+                                </button>
+                                <button type="button" className="btn" disabled={page >= totalPages - 1} onClick={() => setPage((p) => Math.min(p + 1, totalPages - 1))}>
+                                    Next <ChevronRight size={16} />
+                                </button>
+                            </div>
+                        </div>
+                    )}
+                </section>
             </div>
-
-            {/* =====================================================
-                EMPLOYEE ATTENDANCE MODAL
-            ===================================================== */}
 
             {selectedEmployeeId && (
                 <EmployeeAttendanceModal
-                    employeeId={
-                        selectedEmployeeId
-                    }
+                    employeeId={selectedEmployeeId}
                     asOfDate={toDate}
-                    onClose={() =>
-                        setSelectedEmployeeId(
-                            null
-                        )
-                    }
+                    onClose={() => setSelectedEmployeeId(null)}
                 />
             )}
+
+            {/* global + prefixed with .att so it is safe and reaches every element */}
+            <style jsx global>{`
+                .att {
+                    --bg:#f4f6fb; --surface:#fff; --soft:#f8f9fd; --hover:#f6f8fe; --line:#e8ebf4; --line2:#eef0f6; --input:#e1e5f0;
+                    --text:#151a30; --text2:#475069; --muted:#7b84a0; --faint:#99a1ba;
+                    --primary:#2f5bea; --primary2:#2549cf; --primary-soft:#eaf0ff; --primary-line:#c9d6ff;
+                    --present:#0f9d6e; --present-bg:#e4f6ee; --half:#c8700f; --half-bg:#fdf0dc;
+                    --leave:#2f6fd0; --leave-bg:#e7f0fd; --absent:#cf4037; --absent-bg:#fdeae8;
+                    min-height:100vh; padding:28px 40px 56px; background:var(--bg); color:var(--text);
+                    font-family:'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+                    font-size:14px; line-height:1.45; font-variant-numeric:tabular-nums;
+                }
+                .dark .att {
+                    --bg:#0a0d16; --surface:#11151f; --soft:#151a27; --hover:#171d2c; --line:#232b3c; --line2:#1b2230; --input:#2a3347;
+                    --text:#f1f3f9; --text2:#c3cad9; --muted:#8e98ad; --faint:#667086;
+                    --primary:#6d8dff; --primary2:#839dff; --primary-soft:rgba(109,141,255,.13); --primary-line:rgba(109,141,255,.32);
+                    --present:#45c89c; --present-bg:rgba(69,200,156,.13); --half:#f0ab4d; --half-bg:rgba(240,171,77,.13);
+                    --leave:#6aa7ef; --leave-bg:rgba(106,167,239,.13); --absent:#ee766e; --absent-bg:rgba(238,118,110,.13);
+                }
+                .att .wrap { width:min(100%,1320px); margin:0 auto; }
+                .att button, .att input, .att select { font-family:inherit; }
+                .att button:focus-visible, .att input:focus-visible, .att select:focus-visible { outline:2px solid var(--primary); outline-offset:2px; }
+                .att .faint { color:var(--faint); }
+                .att .spin { animation:att-spin .9s linear infinite; }
+
+                /* header */
+                .att .head { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:22px; }
+                .att .head h1 { margin:0; font-size:28px; line-height:1.15; font-weight:800; letter-spacing:-.03em; }
+                .att .head p { margin:5px 0 0; color:var(--muted); font-size:14px; }
+                .att .head-actions { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+                .att .date { display:flex; align-items:center; gap:8px; height:44px; padding:0 14px; border:1px solid var(--input); border-radius:12px; background:var(--surface); color:var(--muted); font-size:13px; font-weight:600; }
+                .att .date input { border:0; outline:0; background:transparent; color:var(--text); font-size:14px; font-weight:600; color-scheme:light; }
+                .dark .att .date input { color-scheme:dark; }
+
+                .att .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; height:44px; padding:0 18px; border:1px solid var(--input); border-radius:12px;
+                    background:var(--surface); color:var(--text2); font-size:14px; font-weight:700; cursor:pointer; transition:background .15s, border-color .15s, color .15s, transform .15s; }
+                .att .btn:hover:not(:disabled) { border-color:var(--primary-line); background:var(--primary-soft); color:var(--primary); }
+                .att .btn:active:not(:disabled) { transform:translateY(1px); }
+                .att .btn:disabled { opacity:.5; cursor:not-allowed; }
+                .att .btn.icon { width:44px; padding:0; }
+                .att .btn.primary { background:var(--primary); border-color:var(--primary); color:#fff; }
+                .dark .att .btn.primary { color:#0a0d16; }
+                .att .btn.primary:hover:not(:disabled) { background:var(--primary2); border-color:var(--primary2); color:#fff; }
+                .dark .att .btn.primary:hover:not(:disabled) { color:#0a0d16; }
+
+                /* status cards */
+                .att .cards { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-bottom:20px; }
+                .att .card { position:relative; display:flex; align-items:center; gap:14px; padding:20px; text-align:left; border:1px solid var(--line); border-radius:16px;
+                    background:var(--surface); color:var(--text); cursor:pointer; transition:transform .18s, border-color .18s, box-shadow .18s; }
+                .att .card:hover { transform:translateY(-2px); box-shadow:0 8px 24px rgba(21,26,48,.07); }
+                .att .card.on { border-color:var(--primary); box-shadow:0 0 0 3px var(--primary-soft); }
+                .att .card-icon { width:48px; height:48px; flex:0 0 auto; display:grid; place-items:center; border-radius:14px; }
+                .att .card-text { display:flex; flex-direction:column; }
+                .att .card-num { font-size:30px; line-height:1; font-weight:800; letter-spacing:-.03em; }
+                .att .card-label { margin-top:6px; font-size:13.5px; color:var(--muted); font-weight:600; }
+                .att .card-share { margin-left:auto; align-self:flex-start; font-size:12.5px; font-weight:700; color:var(--faint); }
+                .att .card.present .card-icon { background:var(--present-bg); color:var(--present); }
+                .att .card.half .card-icon { background:var(--half-bg); color:var(--half); }
+                .att .card.leave .card-icon { background:var(--leave-bg); color:var(--leave); }
+                .att .card.absent .card-icon { background:var(--absent-bg); color:var(--absent); }
+
+                /* panel + toolbar */
+                .att .panel { background:var(--surface); border:1px solid var(--line); border-radius:18px; overflow:hidden; }
+                .att .tools { display:flex; align-items:center; gap:12px; flex-wrap:wrap; padding:16px 18px; border-bottom:1px solid var(--line2); }
+                .att .search { position:relative; flex:1 1 300px; min-width:220px; }
+                .att .search svg { position:absolute; left:14px; top:50%; transform:translateY(-50%); color:var(--faint); pointer-events:none; }
+                .att .search input { width:100%; height:44px; padding:0 40px 0 42px; border:1px solid var(--input); border-radius:11px; background:var(--soft); color:var(--text); font-size:14px; }
+                .att .search input::placeholder { color:var(--faint); }
+                .att .search input:focus { border-color:var(--primary); background:var(--surface); }
+                .att .x { position:absolute; right:8px; top:50%; transform:translateY(-50%); width:26px; height:26px; display:grid; place-items:center; border:0; border-radius:7px; background:transparent; color:var(--muted); cursor:pointer; }
+                .att .x:hover { background:var(--line2); }
+                .att .select { position:relative; }
+                .att .select select { appearance:none; height:44px; padding:0 40px 0 16px; border:1px solid var(--input); border-radius:11px; background:var(--surface); color:var(--text); font-size:14px; font-weight:600; cursor:pointer; }
+                .att .select select:focus { border-color:var(--primary); }
+                .att .select svg { position:absolute; right:13px; top:50%; transform:translateY(-50%); color:var(--muted); pointer-events:none; }
+                .att .break-note { display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 12px; border-radius:99px; background:var(--half-bg); color:var(--half); font-size:13px; font-weight:700; }
+                .att .link { border:0; background:transparent; color:var(--primary); font-size:13.5px; font-weight:700; cursor:pointer; padding:8px; }
+                .att .link:hover { text-decoration:underline; }
+
+                /* table */
+                .att .scroll { overflow-x:auto; }
+                .att .table { min-width:980px; }
+                .att .tr { display:grid; grid-template-columns:minmax(250px,2fr) minmax(130px,1fr) 130px 100px 100px minmax(140px,1.1fr) 100px; align-items:center; gap:14px; padding:0 22px; }
+                .att .th { min-height:46px; background:var(--soft); border-bottom:1px solid var(--line2); color:var(--muted); font-size:13px; font-weight:600; }
+                .att .row { min-height:72px; border-bottom:1px solid var(--line2); cursor:pointer; color:var(--text2); transition:background .12s; }
+                .att .row:last-child { border-bottom:0; }
+                .att .row:hover, .att .row:hover .sticky { background:var(--hover); }
+                .att .sticky { position:sticky; left:0; z-index:2; align-self:stretch; display:flex; align-items:center; margin-left:-22px; padding-left:22px; background:var(--surface); }
+                .att .th .sticky { background:var(--soft); }
+
+                .att .emp { gap:13px; min-width:0; }
+                .att .avatar { width:40px; height:40px; flex:0 0 auto; display:grid; place-items:center; border-radius:50%; font-size:13px; font-weight:800;
+                    background:hsl(var(--h) 80% 93%); color:hsl(var(--h) 55% 33%); }
+                .dark .att .avatar { background:hsl(var(--h) 35% 21%); color:hsl(var(--h) 75% 80%); }
+                .att .emp-text { min-width:0; display:flex; flex-direction:column; }
+                .att .emp-text b { color:var(--text); font-size:15px; font-weight:700; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+                .att .emp-text small, .att .brk small { font-size:13px; color:var(--faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+                .att .dept { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+                .att .mono { font-weight:650; color:var(--text); }
+                .att .brk { display:flex; flex-direction:column; min-width:0; }
+
+                .att .pill { display:inline-flex; align-items:center; height:29px; padding:0 13px; border-radius:99px; font-size:13px; font-weight:700; white-space:nowrap; }
+                .att .pill.present { background:var(--present-bg); color:var(--present); }
+                .att .pill.half { background:var(--half-bg); color:var(--half); }
+                .att .pill.leave { background:var(--leave-bg); color:var(--leave); }
+                .att .pill.absent { background:var(--absent-bg); color:var(--absent); }
+                .att .pill.unknown { background:var(--line2); color:var(--muted); }
+                .att .live { display:inline-flex; align-items:center; gap:7px; width:fit-content; padding:4px 11px; border-radius:99px; background:var(--half-bg); color:var(--half); font-size:13px; font-weight:700; }
+                .att .live i { width:7px; height:7px; border-radius:50%; background:currentColor; animation:att-pulse 1.6s infinite; }
+                .att .end { text-align:right; }
+                .att .view { display:inline-flex; align-items:center; gap:6px; height:36px; padding:0 13px; border:1px solid var(--input); border-radius:10px; background:var(--surface); color:var(--text2); font-size:13px; font-weight:700; cursor:pointer; transition:all .15s; }
+                .att .view:hover { border-color:var(--primary-line); background:var(--primary-soft); color:var(--primary); }
+
+                /* states */
+                .att .skel { height:72px; border-bottom:1px solid var(--line2); background:linear-gradient(90deg,transparent,var(--hover),transparent); background-size:200% 100%; animation:att-shimmer 1.4s infinite; }
+                .att .empty { display:flex; flex-direction:column; align-items:center; gap:6px; padding:68px 24px; text-align:center; color:var(--muted); }
+                .att .empty-icon { width:56px; height:56px; display:grid; place-items:center; border-radius:16px; background:var(--primary-soft); color:var(--primary); margin-bottom:8px; }
+                .att .empty h3 { margin:0; font-size:18px; color:var(--text); }
+                .att .empty p { margin:0 0 12px; }
+                .att .pager { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 22px; border-top:1px solid var(--line2); color:var(--muted); }
+                .att .pager b { color:var(--text); }
+                .att .pager-btns { display:flex; gap:8px; }
+                .att .pager .btn { height:38px; padding:0 14px; font-size:13px; }
+
+                @keyframes att-spin { to { transform:rotate(360deg); } }
+                @keyframes att-shimmer { from { background-position:200% 0; } to { background-position:-200% 0; } }
+                @keyframes att-pulse { 50% { opacity:.35; } }
+                @media (prefers-reduced-motion: reduce) { .att .spin, .att .skel, .att .live i { animation:none; } .att .card { transition:none; } }
+
+                @media (max-width:1100px) { .att .cards { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+                @media (max-width:700px) {
+                    .att { padding:18px 14px 40px; }
+                    .att .head h1 { font-size:24px; }
+                    .att .head-actions { width:100%; }
+                    .att .date { flex:1; } .att .date input { min-width:0; width:100%; }
+                    .att .btn.primary { flex:1; }
+                    .att .cards { gap:10px; }
+                    .att .card { padding:14px; gap:10px; } .att .card-icon { width:40px; height:40px; } .att .card-num { font-size:24px; } .att .card-share { display:none; }
+                    .att .pager { flex-direction:column; }
+                }
+            `}</style>
         </div>
     );
 }

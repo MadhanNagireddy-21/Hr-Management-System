@@ -1,0 +1,1007 @@
+/* ============================================================
+   HOLIDAY MANAGEMENT
+   Matches the sidebar: emerald accent, slate neutrals.
+   Dark mode works with next-themes (class="dark" or
+   data-theme="dark" on <html>).
+============================================================ */
+
+.holiday-page {
+    --h-bg: #f8fafc;
+    --h-surface: #ffffff;
+    --h-surface-2: #f1f5f9;
+    --h-border: #e2e8f0;
+    --h-text: #0f172a;
+    --h-text-2: #475569;
+    --h-text-3: #64748b;
+    --h-accent: #10b981;
+    --h-accent-strong: #059669;
+    --h-accent-soft: rgba(16, 185, 129, 0.12);
+    --h-danger: #ef4444;
+    --h-danger-soft: rgba(239, 68, 68, 0.1);
+    --h-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px rgba(15, 23, 42, 0.05);
+    --h-overlay: rgba(15, 23, 42, 0.5);
+
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 28px 28px 48px;
+    color: var(--h-text);
+    box-sizing: border-box;
+}
+
+:is(.dark, [data-theme="dark"]) .holiday-page {
+    --h-bg: #0a0e17;
+    --h-surface: #111827;
+    --h-surface-2: #0f172a;
+    --h-border: rgba(255, 255, 255, 0.08);
+    --h-text: #f1f5f9;
+    --h-text-2: #cbd5e1;
+    --h-text-3: #94a3b8;
+    --h-accent: #34d399;
+    --h-accent-strong: #10b981;
+    --h-accent-soft: rgba(52, 211, 153, 0.14);
+    --h-danger: #f87171;
+    --h-danger-soft: rgba(248, 113, 113, 0.14);
+    --h-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+    --h-overlay: rgba(2, 6, 14, 0.7);
+}
+
+.holiday-page *,
+.holiday-page *::before,
+.holiday-page *::after {
+    box-sizing: border-box;
+}
+
+.holiday-page button {
+    font-family: inherit;
+}
+
+.holiday-page button:focus-visible,
+.holiday-page input:focus-visible,
+.holiday-page select:focus-visible,
+.holiday-page textarea:focus-visible {
+    outline: 2px solid var(--h-accent);
+    outline-offset: 2px;
+}
+
+
+/* ============================================================
+   HEADER
+============================================================ */
+
+.holiday-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 24px;
+}
+
+.holiday-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+}
+
+.holiday-header-icon {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    color: #ffffff;
+    background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+    box-shadow: 0 10px 24px rgba(16, 185, 129, 0.28);
+}
+
+.holiday-header h1 {
+    margin: 0;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    line-height: 1.2;
+    color: var(--h-text);
+}
+
+.holiday-header p {
+    margin: 4px 0 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--h-text-3);
+    max-width: 52ch;
+}
+
+.add-holiday-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 12px;
+    background: var(--h-accent-strong);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 6px 16px rgba(5, 150, 105, 0.28);
+    transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.add-holiday-button:hover {
+    background: #047857;
+    box-shadow: 0 8px 20px rgba(5, 150, 105, 0.36);
+}
+
+.add-holiday-button:active {
+    transform: translateY(1px);
+}
+
+
+/* ============================================================
+   ALERTS
+============================================================ */
+
+.holiday-alert {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 18px;
+    padding: 13px 16px;
+    border-radius: 12px;
+    border: 1px solid transparent;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+}
+
+.holiday-alert.error {
+    background: var(--h-danger-soft);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: var(--h-danger);
+}
+
+.holiday-alert.success {
+    background: var(--h-accent-soft);
+    border-color: rgba(16, 185, 129, 0.3);
+    color: var(--h-accent-strong);
+}
+
+:is(.dark, [data-theme="dark"]) .holiday-alert.success {
+    color: var(--h-accent);
+}
+
+.holiday-alert button {
+    display: flex;
+    flex-shrink: 0;
+    padding: 4px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: opacity 0.15s ease, background 0.15s ease;
+}
+
+.holiday-alert button:hover {
+    opacity: 1;
+    background: rgba(127, 127, 127, 0.15);
+}
+
+
+/* ============================================================
+   STATS
+============================================================ */
+
+.holiday-stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.holiday-stat-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: var(--h-surface);
+    border: 1px solid var(--h-border);
+    border-radius: 16px;
+    box-shadow: var(--h-shadow);
+}
+
+.holiday-stat-icon {
+    width: 48px;
+    height: 48px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    background: var(--h-accent-soft);
+    color: var(--h-accent-strong);
+}
+
+:is(.dark, [data-theme="dark"]) .holiday-stat-icon {
+    color: var(--h-accent);
+}
+
+.holiday-stat-card > div:last-child {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.holiday-stat-card span {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--h-text-3);
+}
+
+.holiday-stat-card strong {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+    color: var(--h-text);
+    font-variant-numeric: tabular-nums;
+}
+
+
+/* ============================================================
+   FILTER BAR
+============================================================ */
+
+.holiday-filter-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    padding: 12px;
+    background: var(--h-surface);
+    border: 1px solid var(--h-border);
+    border-radius: 16px;
+    box-shadow: var(--h-shadow);
+}
+
+.holiday-search {
+    position: relative;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.holiday-search > svg {
+    position: absolute;
+    left: 14px;
+    color: var(--h-text-3);
+    pointer-events: none;
+}
+
+.holiday-search input {
+    width: 100%;
+    height: 44px;
+    padding: 0 42px 0 42px;
+    border: 1px solid var(--h-border);
+    border-radius: 11px;
+    background: var(--h-surface-2);
+    color: var(--h-text);
+    font-size: 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.holiday-search input::placeholder {
+    color: var(--h-text-3);
+}
+
+.holiday-search input:focus {
+    outline: none;
+    border-color: var(--h-accent);
+    background: var(--h-surface);
+    box-shadow: 0 0 0 3px var(--h-accent-soft);
+}
+
+.holiday-search button {
+    position: absolute;
+    right: 8px;
+    display: flex;
+    padding: 6px;
+    border: none;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--h-text-3);
+    cursor: pointer;
+}
+
+.holiday-search button:hover {
+    background: var(--h-border);
+    color: var(--h-text);
+}
+
+.holiday-select {
+    position: relative;
+    flex-shrink: 0;
+    width: 170px;
+}
+
+.holiday-select select {
+    width: 100%;
+    height: 44px;
+    padding: 0 38px 0 14px;
+    border: 1px solid var(--h-border);
+    border-radius: 11px;
+    background: var(--h-surface-2);
+    color: var(--h-text);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.holiday-select select:focus {
+    outline: none;
+    border-color: var(--h-accent);
+    box-shadow: 0 0 0 3px var(--h-accent-soft);
+}
+
+.holiday-select > svg {
+    position: absolute;
+    right: 13px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--h-text-3);
+    pointer-events: none;
+}
+
+
+/* ============================================================
+   LIST CARD
+============================================================ */
+
+.holiday-list-card {
+    background: var(--h-surface);
+    border: 1px solid var(--h-border);
+    border-radius: 16px;
+    box-shadow: var(--h-shadow);
+    overflow: hidden;
+}
+
+.holiday-list-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--h-border);
+}
+
+.holiday-list-header h2 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--h-text);
+}
+
+.holiday-list-header p {
+    margin: 3px 0 0;
+    font-size: 13px;
+    color: var(--h-text-3);
+}
+
+
+/* ============================================================
+   LOADING + EMPTY
+============================================================ */
+
+.holiday-loading,
+.holiday-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 64px 24px;
+    text-align: center;
+}
+
+.holiday-loading p {
+    margin: 14px 0 0;
+    font-size: 14px;
+    color: var(--h-text-3);
+}
+
+.holiday-loading svg {
+    color: var(--h-accent);
+}
+
+.holiday-spinner {
+    animation: holiday-spin 0.9s linear infinite;
+}
+
+@keyframes holiday-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.holiday-empty-icon {
+    width: 72px;
+    height: 72px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 20px;
+    background: var(--h-accent-soft);
+    color: var(--h-accent-strong);
+}
+
+:is(.dark, [data-theme="dark"]) .holiday-empty-icon {
+    color: var(--h-accent);
+}
+
+.holiday-empty h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--h-text);
+}
+
+.holiday-empty p {
+    margin: 6px 0 22px;
+    max-width: 38ch;
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--h-text-3);
+}
+
+.holiday-empty button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 11px 18px;
+    border: none;
+    border-radius: 11px;
+    background: var(--h-accent-strong);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.holiday-empty button:hover {
+    background: #047857;
+}
+
+
+/* ============================================================
+   TABLE
+============================================================ */
+
+.holiday-table-wrapper {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.holiday-table {
+    width: 100%;
+    min-width: 860px;
+    border-collapse: collapse;
+}
+
+.holiday-table thead th {
+    padding: 14px 24px;
+    text-align: left;
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: var(--h-text-3);
+    background: var(--h-surface-2);
+    border-bottom: 1px solid var(--h-border);
+}
+
+.holiday-table tbody td {
+    padding: 16px 24px;
+    font-size: 14px;
+    color: var(--h-text-2);
+    vertical-align: middle;
+    border-bottom: 1px solid var(--h-border);
+}
+
+.holiday-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.holiday-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.holiday-table tbody tr:hover {
+    background: var(--h-surface-2);
+}
+
+/* Holiday name */
+
+.holiday-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.holiday-row-icon {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 11px;
+    background: var(--h-accent-soft);
+    color: var(--h-accent-strong);
+}
+
+:is(.dark, [data-theme="dark"]) .holiday-row-icon {
+    color: var(--h-accent);
+}
+
+.holiday-name-cell strong {
+    display: block;
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--h-text);
+}
+
+.holiday-name-cell span {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--h-text-3);
+}
+
+/* Date */
+
+.date-cell,
+.location-cell,
+.description-cell {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+}
+
+.date-cell > svg,
+.location-cell > svg,
+.description-cell > svg {
+    flex-shrink: 0;
+    margin-top: 2px;
+    color: var(--h-text-3);
+}
+
+.date-cell {
+    white-space: nowrap;
+}
+
+.date-cell span {
+    display: block;
+    font-weight: 600;
+    color: var(--h-text);
+}
+
+.date-cell small {
+    display: block;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--h-accent-strong);
+    font-weight: 600;
+}
+
+:is(.dark, [data-theme="dark"]) .date-cell small {
+    color: var(--h-accent);
+}
+
+.location-cell span {
+    white-space: nowrap;
+}
+
+.description-cell {
+    max-width: 280px;
+}
+
+.description-cell span {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.5;
+}
+
+/* Actions */
+
+.holiday-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.holiday-actions button {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--h-border);
+    border-radius: 10px;
+    background: var(--h-surface);
+    color: var(--h-text-2);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.holiday-actions .edit-button:hover {
+    background: var(--h-accent-soft);
+    border-color: rgba(16, 185, 129, 0.4);
+    color: var(--h-accent-strong);
+}
+
+.holiday-actions .delete-button:hover:not(:disabled) {
+    background: var(--h-danger-soft);
+    border-color: rgba(239, 68, 68, 0.4);
+    color: var(--h-danger);
+}
+
+.holiday-actions button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+
+/* ============================================================
+   MODAL
+============================================================ */
+
+.holiday-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: var(--h-overlay);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    animation: holiday-fade 0.18s ease-out;
+}
+
+.holiday-modal {
+    width: min(560px, 100%);
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
+    background: var(--h-surface);
+    border: 1px solid var(--h-border);
+    border-radius: 20px;
+    box-shadow: 0 30px 80px rgba(2, 6, 23, 0.35);
+    animation: holiday-pop 0.22s ease-out;
+}
+
+@keyframes holiday-fade {
+    from {
+        opacity: 0;
+    }
+}
+
+@keyframes holiday-pop {
+    from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+    }
+}
+
+.holiday-modal-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px 24px;
+    border-bottom: 1px solid var(--h-border);
+}
+
+.holiday-modal-header > div {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.holiday-modal-title-icon {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 13px;
+    background: var(--h-accent-soft);
+    color: var(--h-accent-strong);
+}
+
+:is(.dark, [data-theme="dark"]) .holiday-modal-title-icon {
+    color: var(--h-accent);
+}
+
+.holiday-modal-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--h-text);
+}
+
+.holiday-modal-header p {
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: var(--h-text-3);
+}
+
+.modal-close {
+    flex-shrink: 0;
+    display: flex;
+    padding: 7px;
+    border: none;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--h-text-3);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.modal-close:hover {
+    background: var(--h-surface-2);
+    color: var(--h-text);
+}
+
+/* Form */
+
+.holiday-form {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 24px;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 0;
+}
+
+.form-group label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--h-text-2);
+}
+
+.form-group label span {
+    margin-left: 3px;
+    color: var(--h-danger);
+}
+
+.input-with-icon,
+.textarea-wrapper {
+    position: relative;
+    display: flex;
+}
+
+.input-with-icon > svg,
+.textarea-wrapper > svg {
+    position: absolute;
+    left: 14px;
+    color: var(--h-text-3);
+    pointer-events: none;
+}
+
+.input-with-icon > svg {
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.textarea-wrapper > svg {
+    top: 14px;
+}
+
+.input-with-icon input,
+.textarea-wrapper textarea {
+    width: 100%;
+    border: 1px solid var(--h-border);
+    border-radius: 11px;
+    background: var(--h-surface-2);
+    color: var(--h-text);
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+
+.input-with-icon input {
+    height: 46px;
+    padding: 0 14px 0 42px;
+}
+
+.textarea-wrapper textarea {
+    padding: 12px 14px 12px 42px;
+    line-height: 1.55;
+    resize: vertical;
+    min-height: 100px;
+}
+
+.input-with-icon input::placeholder,
+.textarea-wrapper textarea::placeholder {
+    color: var(--h-text-3);
+}
+
+.input-with-icon input:focus,
+.textarea-wrapper textarea:focus {
+    outline: none;
+    border-color: var(--h-accent);
+    background: var(--h-surface);
+    box-shadow: 0 0 0 3px var(--h-accent-soft);
+}
+
+:is(.dark, [data-theme="dark"]) .input-with-icon input[type="date"] {
+    color-scheme: dark;
+}
+
+.form-error,
+.form-success {
+    padding: 11px 14px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1.45;
+}
+
+.form-error {
+    background: var(--h-danger-soft);
+    color: var(--h-danger);
+}
+
+.form-success {
+    background: var(--h-accent-soft);
+    color: var(--h-accent-strong);
+}
+
+:is(.dark, [data-theme="dark"]) .form-success {
+    color: var(--h-accent);
+}
+
+/* Modal buttons */
+
+.holiday-modal-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.holiday-modal-actions button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 46px;
+    padding: 11px 16px;
+    border-radius: 11px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease, opacity 0.2s ease;
+}
+
+.cancel-button {
+    border: 1px solid var(--h-border);
+    background: var(--h-surface-2);
+    color: var(--h-text);
+}
+
+.cancel-button:hover:not(:disabled) {
+    background: var(--h-border);
+}
+
+.save-button {
+    border: 1px solid var(--h-accent-strong);
+    background: var(--h-accent-strong);
+    color: #ffffff;
+}
+
+.save-button:hover:not(:disabled) {
+    background: #047857;
+    border-color: #047857;
+}
+
+.holiday-modal-actions button:disabled {
+    opacity: 0.65;
+    cursor: not-allowed;
+}
+
+
+/* ============================================================
+   RESPONSIVE
+============================================================ */
+
+@media (max-width: 900px) {
+    .holiday-stats {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .holiday-page {
+        padding: 18px 16px 40px;
+    }
+
+    .holiday-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .holiday-header h1 {
+        font-size: 22px;
+    }
+
+    .add-holiday-button {
+        justify-content: center;
+    }
+
+    .holiday-filter-card {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .holiday-select {
+        width: 100%;
+    }
+
+    .holiday-list-header,
+    .holiday-table thead th,
+    .holiday-table tbody td {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+}
+
+@media (max-width: 520px) {
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .holiday-form {
+        padding: 18px;
+    }
+
+    .holiday-modal-header {
+        padding: 18px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .holiday-page *,
+    .holiday-modal-overlay,
+    .holiday-modal {
+        animation: none !important;
+        transition: none !important;
+    }
+
+    .holiday-spinner {
+        animation: holiday-spin 1.6s linear infinite !important;
+    }
+}
