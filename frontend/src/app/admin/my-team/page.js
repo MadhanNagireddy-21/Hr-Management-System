@@ -10,7 +10,7 @@ const roleTitle = {
   ADMIN: "Administrator",
   HR: "HR Manager",
   MANAGER: "Manager",
-  TEAM_LEAD: "Team Leader",
+  TEAM_LEADER: "Team Leader",
   EMPLOYEE: "Employee",
 };
 
@@ -18,7 +18,7 @@ const avatarColor = {
   ADMIN: "bg-slate-700",
   HR: "bg-blue-600",
   MANAGER: "bg-violet-500",
-  TEAM_LEAD: "bg-sky-500",
+  TEAM_LEADER: "bg-sky-500",
   EMPLOYEE: "bg-emerald-500",
 };
 
@@ -27,14 +27,14 @@ const childLabel = {
   ADMIN: "HR Managers",
   HR: "Managers",
   MANAGER: "Team Leaders",
-  TEAM_LEAD: "Employees",
+  TEAM_LEADER: "Employees",
 };
 
 const childIcon = {
   ADMIN: "🛡️",
   HR: "🧑‍💼",
   MANAGER: "👥",
-  TEAM_LEAD: "🧑‍💻",
+  TEAM_LEADER: "🧑‍💻",
 };
 
 /* ---------- helpers ---------- */
@@ -76,8 +76,8 @@ function childrenOf(person, members) {
         case "HR":
           return c.role === "MANAGER" && c.hrId === person.id;
         case "MANAGER":
-          return c.role === "TEAM_LEAD" && c.managerId === person.id;
-        case "TEAM_LEAD":
+          return c.role === "TEAM_LEADER" && c.managerId === person.id;
+        case "TEAM_LEADER":
           return c.role === "EMPLOYEE" && c.teamLeaderId === person.id;
         default:
           return false;
@@ -328,7 +328,7 @@ export default function AdminTeamPage() {
       members
         .filter((m) => {
           if (m.role === "MANAGER") return !m.hrId || !ids.has(m.hrId);
-          if (m.role === "TEAM_LEAD") return !m.managerId || !ids.has(m.managerId);
+          if (m.role === "TEAM_LEADER") return !m.managerId || !ids.has(m.managerId);
           if (m.role === "EMPLOYEE") return !m.teamLeaderId || !ids.has(m.teamLeaderId);
           return false;
         })
@@ -386,7 +386,7 @@ export default function AdminTeamPage() {
     { label: "Total Members", value: members.length, icon: "👥", note: "Whole organization", card: "border-emerald-100 from-emerald-50 to-teal-50", iconBg: "bg-emerald-500", noteColor: "text-emerald-700" },
     { label: "HR Managers", value: count("HR"), icon: "🧑‍💼", note: "People operations", card: "border-blue-100 from-blue-50 to-sky-50", iconBg: "bg-blue-500", noteColor: "text-blue-700" },
     { label: "Managers", value: count("MANAGER"), icon: "👤", note: "Management team", card: "border-orange-100 from-orange-50 to-amber-50", iconBg: "bg-orange-500", noteColor: "text-orange-700" },
-    { label: "Team Leads", value: count("TEAM_LEAD"), icon: "👥", note: "Team leadership", card: "border-violet-100 from-violet-50 to-indigo-50", iconBg: "bg-violet-500", noteColor: "text-violet-700" },
+    { label: "Team Leads", value: count("TEAM_LEADER"), icon: "👥", note: "Team leadership", card: "border-violet-100 from-violet-50 to-indigo-50", iconBg: "bg-violet-500", noteColor: "text-violet-700" },
     { label: "Employees", value: count("EMPLOYEE"), icon: "👤", note: "Employee directory", card: "border-purple-100 from-purple-50 to-fuchsia-50", iconBg: "bg-purple-500", noteColor: "text-purple-700" },
   ];
 
