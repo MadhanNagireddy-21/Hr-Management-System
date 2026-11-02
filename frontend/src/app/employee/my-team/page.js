@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://hrms.saitejainfotechprivatelimited.com/";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://hrms.saitejainfotechprivatelimited.com";
 
 /* ---------- constants ---------- */
 
