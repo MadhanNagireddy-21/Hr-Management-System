@@ -10,7 +10,7 @@ const ROLE = {
   ADMIN: { label: "Administrator", avatar: "bg-slate-600", badge: "bg-slate-100 text-slate-700" },
   HR: { label: "HR Manager", avatar: "bg-blue-600", badge: "bg-blue-50 text-blue-700" },
   MANAGER: { label: "Manager", avatar: "bg-violet-500", badge: "bg-violet-50 text-violet-700" },
-  TEAM_LEAD: { label: "Team Leader", avatar: "bg-sky-500", badge: "bg-sky-50 text-sky-700" },
+  TEAM_LEADER: { label: "Team Leader", avatar: "bg-sky-500", badge: "bg-sky-50 text-sky-700" },
   EMPLOYEE: { label: "Employee", avatar: "bg-emerald-500", badge: "bg-emerald-50 text-emerald-700" },
 };
 
@@ -352,17 +352,17 @@ export default function MyTeamPage() {
             (me.teamLeaderId ? m.teamLeaderId === me.teamLeaderId : m.managerId === me.managerId)
         )
         .sort(byName);
-    } else if (me.role === "TEAM_LEAD") {
+    } else if (me.role === "TEAM_LEADER") {
       reports = members
         .filter((m) => m.role === "EMPLOYEE" && m.teamLeaderId === me.id)
         .sort(byName);
       totalBelow = reports.length;
       peers = members
-        .filter((m) => m.id !== me.id && m.role === "TEAM_LEAD" && m.managerId === me.managerId)
+        .filter((m) => m.id !== me.id && m.role === "TEAM_LEADER" && m.managerId === me.managerId)
         .sort(byName);
     } else if (me.role === "MANAGER") {
       reports = members
-        .filter((m) => m.role === "TEAM_LEAD" && m.managerId === me.id)
+        .filter((m) => m.role === "TEAM_LEADER" && m.managerId === me.id)
         .sort(byName);
       totalBelow = members.filter(
         (m) => m.role === "EMPLOYEE" && reports.some((l) => l.id === m.teamLeaderId)
@@ -412,7 +412,7 @@ export default function MyTeamPage() {
   }
 
   const isEmployee = me.role === "EMPLOYEE";
-  const isLead = me.role === "TEAM_LEAD";
+  const isLead = me.role === "TEAM_LEADER";
   const isManager = me.role === "MANAGER";
 
   // Stat cards change with the role of the person who is signed in
